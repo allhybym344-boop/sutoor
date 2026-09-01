@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "سطور",
+    "slug": "sutoor",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/zzz.png",
+    "scheme": "sutoor",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#556B2F",
+        "foregroundImage": "./assets/images/zzz.png"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.bio_mustafa.sutoor"
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "backgroundColor": "#000000"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "88c86157-6625-47dd-8a7f-f83929131158"
+      }
+    },
+    "owner": "bio_mustafa"
+  }
+}
