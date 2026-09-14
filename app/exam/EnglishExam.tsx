@@ -5,7 +5,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import { useRouter } from 'expo-router';
-import { shareAsync } from 'expo-sharing';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -23,8 +22,8 @@ import {
   View
 } from 'react-native';
 
+import { useSubscription } from '../../context/SubscriptionContext';
 import { setExamStore } from '../../utils/examStore';
-import { useSubscription } from '../context/SubscriptionContext';
 
 const englishFonts = [
   { label: 'تايمز نيو رومان (Times New Roman - رسمي وزاري)', value: 'Times New Roman' },
@@ -180,7 +179,7 @@ const ModalDropdown = ({ label, value, options, onSelect, isOpen, onToggle }) =>
 
   return (
     <View style={styles.dropdownWrapper}>
-      <Text style={styles.subLabel}>{label}</Text>
+      {label ? <Text style={styles.subLabel}>{label}</Text> : null}
       
       <TouchableOpacity activeOpacity={0.8} onPress={onToggle} style={styles.dropdownHeader}>
         <View style={styles.dropdownHeaderInner}>
@@ -569,18 +568,18 @@ const QuestionItem = React.memo(({
         >
           <Ionicons name={item.customStyleEnabled ? "checkbox" : "square-outline"} size={16} color={item.customStyleEnabled ? "#4B5320" : "#6E7A41"} />
           <Text style={[styles.customToggleText, item.customStyleEnabled ? styles.customToggleTextActive : null]}>
-            تخصيص تنسيق فردي لهذا السؤال (حجم، لون، تظليل)
+            Customize individual question style (Size, Color, Shading)
           </Text>
         </TouchableOpacity>
       </View>
 
       {item.customStyleEnabled ? (
         <View style={styles.customStyleBox}>
-          <Text style={styles.customStyleBoxTitle}>إعدادات التنسيق الفردي للسؤال ({index + 1}):</Text>
+          <Text style={styles.customStyleBoxTitle}>Individual Question Style Settings ({index + 1}):</Text>
           <View style={styles.inputRow}>
             <View style={{ flex: 1 }}>
               <ModalDropdown 
-                label="حجم الخط" 
+                label="Font Size" 
                 value={item.fontSize || '15px'} 
                 options={sizeOptions} 
                 isOpen={activeQDropdownKey === `${item.id}-size`} 
@@ -590,7 +589,7 @@ const QuestionItem = React.memo(({
             </View>
             <View style={{ flex: 1 }}>
               <ModalDropdown 
-                label="لون الخط" 
+                label="Font Color" 
                 value={item.fontColor || '#4B5320'} 
                 options={colorOptions} 
                 isOpen={activeQDropdownKey === `${item.id}-color`} 
@@ -602,7 +601,7 @@ const QuestionItem = React.memo(({
           <View style={styles.inputRow}>
             <View style={{ flex: 1 }}>
               <ModalDropdown 
-                label="تظليل خلفية السؤال" 
+                label="Background Shading" 
                 value={item.shading || 'none'} 
                 options={questionShadingOptions} 
                 isOpen={activeQDropdownKey === `${item.id}-shading`} 
@@ -629,20 +628,20 @@ const QuestionItem = React.memo(({
         placeholderTextColor="#8c9a63"
       />
 
-      <View style={{flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginTop: 10}}>
+      <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10}}>
         <TouchableOpacity style={[styles.innerBtn, { flex: 1, borderColor: item.imageBase64 ? '#4B5320' : 'rgba(75, 83, 32, 0.2)' }]} onPress={pickImageForQuestion}>
           <Ionicons name={item.imageBase64 ? "checkmark-circle" : "image-outline"} size={18} color={item.imageBase64 ? '#4B5320' : '#6E7A41'} />
           <Text style={[styles.innerBtnText, {color: item.imageBase64 ? '#4B5320' : '#6E7A41'}]}>{item.imageBase64 ? 'Image Attached (Change)' : 'Attach Question Image'}</Text>
         </TouchableOpacity>
         {item.imageBase64 ? (
-          <TouchableOpacity style={{marginRight: 10, padding: 10}} onPress={() => onUpdateField(item.id, 'imageBase64', null)}>
+          <TouchableOpacity style={{marginLeft: 10, padding: 10}} onPress={() => onUpdateField(item.id, 'imageBase64', null)}>
              <Ionicons name="trash" size={20} color="#e11d48" />
           </TouchableOpacity>
         ) : null}
       </View>
 
       {item.imageBase64 ? (
-        <View style={{flexDirection: 'row-reverse', gap: 10, marginTop: 10}}>
+        <View style={{flexDirection: 'row', gap: 10, marginTop: 10}}>
           <View style={{flex: 1}}>
             <ModalDropdown label="Image Size:" value={item.imageSize || '50%'} options={imageSizeOptions} isOpen={activeQDropdownKey === `${item.id}-imgSize`} onToggle={() => onOpenQDropdown(`${item.id}-imgSize`)} onSelect={v => onUpdateField(item.id, 'imageSize', v)} />
           </View>
@@ -841,7 +840,6 @@ export default function EnglishExam() {
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
 
-  const [isExporting, setIsExporting] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isGenerating] = useState(false);
 
@@ -870,7 +868,7 @@ export default function EnglishExam() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setExamConfig(p => ({ ...theme.config, layoutTemplate: p.layoutTemplate }));
     setIsThemeModalOpen(false);
-    Alert.alert('تم بنجاح', `تم تطبيق الثيم الإنجليزي (${theme.title}) بنجاح.`);
+    Alert.alert('Success', `Applied English theme (${theme.title}) successfully.`);
   };
   
   const [questions, setQuestions] = useState([
@@ -1228,7 +1226,7 @@ export default function EnglishExam() {
             </div>
           </div>`;
         renderedFooterHTML = `
-          <div class="exam-footer" style="display: flex; justify-content: space-between; margin-top: 25px; border-top: 3px solid ${hColor}; padding-top: 15px;">
+          <div class="exam-footer" style="display: flex; margin-top: 25px; border-top: 3px solid ${hColor}; padding-top: 15px;">
             <div style="font-weight: bold; text-align: left;">${examMeta.teacherName}</div>
             <div style="font-weight: 900; color: ${hColor}; text-align: right;">${examMeta.closingText}</div>
           </div>`;
@@ -1502,25 +1500,6 @@ export default function EnglishExam() {
     }
   };
 
-  const handleExportPDF = async () => {
-    if (questions.length === 0) return;
-    Keyboard.dismiss();
-
-    const canProceed = await handleExportAttempt();
-    if (!canProceed) return;
-
-    setIsExporting(true);
-    try {
-      const finalHTML = generateExamHTML() + getWatermarkHTML();
-      const { uri } = await Print.printToFileAsync({ html: finalHTML, width: 595, height: 842 });
-      await shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
-    } catch (error) {
-      Alert.alert('Error', 'Export failed.');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
@@ -1788,15 +1767,6 @@ export default function EnglishExam() {
               </View>
               <Text style={[styles.dockBtnText, { color: '#4B5320' }]} numberOfLines={1}>طباعة</Text>
             </TouchableOpacity>
-
-            <View style={styles.dockDivider} />
-
-            <TouchableOpacity onPress={handleExportPDF} style={styles.dockBtn} disabled={isExporting || isPrinting} activeOpacity={0.7}>
-              <View style={[styles.dockIconBg, { backgroundColor: 'rgba(75, 83, 32, 0.1)' }]}>
-                {isGenerating ? <ActivityIndicator color="#4B5320" size="small" /> : <Ionicons name="share-outline" size={20} color="#4B5320" />}
-              </View>
-              <Text style={[styles.dockBtnText, { color: '#4B5320' }]} numberOfLines={1}>تصدير PDF</Text>
-            </TouchableOpacity>
           </BlurView>
         </View>
 
@@ -1854,72 +1824,72 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: '900', color: '#3f4a2e' },
   
   inputField: { backgroundColor: 'rgba(255, 255, 255, 0.8)', color: '#3f4a2e', borderRadius: 16, padding: 14, paddingHorizontal: 16, marginBottom: 12, textAlign: 'left', borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)', fontSize: 14 },
-  inputRow: { flexDirection: 'row-reverse', gap: 12 },
+  inputRow: { flexDirection: 'row', gap: 12 },
   configGroupTitle: { color: '#6E7A41', fontSize: 13, marginBottom: 10, textAlign: 'right', fontWeight: '800', letterSpacing: 0.5 },
   
   dropdownWrapper: { flex: 1, marginBottom: 12 },
-  subLabel: { color: '#6E7A41', fontSize: 12, marginBottom: 6, fontWeight: '700', textAlign: 'right' },
-  dropdownHeader: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.8)', borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)', borderRadius: 16, paddingHorizontal: 16, height: 50 },
-  dropdownHeaderInner: { flexDirection: 'row-reverse', alignItems: 'center', flex: 1, gap: 10 },
-  dropdownHeaderText: { color: '#3f4a2e', fontSize: 13, fontWeight: '700', flex: 1, textAlign: 'right' },
+  subLabel: { color: '#6E7A41', fontSize: 12, marginBottom: 6, fontWeight: '700', textAlign: 'left' },
+  dropdownHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255, 255, 255, 0.8)', borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)', borderRadius: 16, paddingHorizontal: 16, height: 50 },
+  dropdownHeaderInner: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 },
+  dropdownHeaderText: { color: '#3f4a2e', fontSize: 13, fontWeight: '700', flex: 1, textAlign: 'left' },
   
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.4)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modalContent: { width: '100%', maxWidth: 380, backgroundColor: '#ffffff', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.1)', overflow: 'hidden', padding: 20, shadowColor: '#4B5320', shadowOffset: { width: 0, height: 15 }, shadowOpacity: 0.15, shadowRadius: 30, elevation: 15 },
-  modalHeader: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(75, 83, 32, 0.1)' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(75, 83, 32, 0.1)' },
   modalTitle: { color: '#3f4a2e', fontSize: 18, fontWeight: '900' },
   closeBtn: { padding: 6, backgroundColor: 'rgba(75, 83, 32, 0.08)', borderRadius: 12 },
   
-  dropdownItem: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, marginBottom: 4 },
+  dropdownItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, marginBottom: 4 },
   dropdownItemSelected: { backgroundColor: 'rgba(75, 83, 32, 0.1)' },
-  dropdownItemText: { color: '#3f4a2e', fontSize: 14, fontWeight: '700', flex: 1, textAlign: 'right' },
+  dropdownItemText: { color: '#3f4a2e', fontSize: 14, fontWeight: '700', flex: 1, textAlign: 'left' },
   dropdownItemTextSelected: { color: '#4B5320', fontWeight: '900' },
   colorDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: '#3f4a2e' },
 
   questionCard: { backgroundColor: 'rgba(255, 255, 255, 0.6)', borderRadius: 20, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.2)' },
-  questionHeaderRow: { flexDirection: 'row-reverse', alignItems: 'flex-start', marginBottom: 16, gap: 12 },
+  questionHeaderRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16, gap: 12 },
   qNumberBadge: { paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12 },
   qNumberText: { color: '#fff', fontWeight: '900' },
   qInput: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.8)', color: '#3f4a2e', borderRadius: 12, padding: 14, textAlign: 'left', minHeight: 45, fontSize: 14, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)' },
   deleteBtn: { padding: 12, backgroundColor: 'rgba(225, 29, 72, 0.1)', borderRadius: 12, marginTop: 18, borderWidth: 1, borderColor: 'rgba(225, 29, 72, 0.3)' },
   
   customStyleToggleRow: { marginBottom: 12 },
-  customToggleBtn: { flexDirection: 'row-reverse', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, backgroundColor: 'rgba(75, 83, 32, 0.05)', borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.1)' },
+  customToggleBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, backgroundColor: 'rgba(75, 83, 32, 0.05)', borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.1)' },
   customToggleBtnActive: { backgroundColor: 'rgba(75, 83, 32, 0.15)', borderColor: 'rgba(75, 83, 32, 0.3)' },
   customToggleText: { color: '#6E7A41', fontSize: 12, fontWeight: '700' },
   customToggleTextActive: { color: '#4B5320' },
 
   customStyleBox: { backgroundColor: 'rgba(75, 83, 32, 0.03)', borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.1)' },
-  customStyleBoxTitle: { color: '#4B5320', fontSize: 12, fontWeight: '900', marginBottom: 10, textAlign: 'right' },
+  customStyleBoxTitle: { color: '#4B5320', fontSize: 12, fontWeight: '900', marginBottom: 10, textAlign: 'left' },
 
-  ocrScanBtn: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(234, 88, 12, 0.1)', borderWidth: 1, borderColor: 'rgba(234, 88, 12, 0.3)', borderRadius: 12, padding: 10, marginBottom: 12, gap: 8 },
+  ocrScanBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(234, 88, 12, 0.1)', borderWidth: 1, borderColor: 'rgba(234, 88, 12, 0.3)', borderRadius: 12, padding: 10, marginBottom: 12, gap: 8 },
   ocrScanText: { color: '#ea580c', fontSize: 13, fontWeight: '900' },
 
   extraBox: { backgroundColor: 'rgba(75, 83, 32, 0.03)', padding: 16, borderRadius: 16, marginTop: 12, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.1)' },
-  extraBoxTitle: { color: '#4B5320', fontSize: 13, fontWeight: '900', marginBottom: 12, textAlign: 'right' },
+  extraBoxTitle: { color: '#4B5320', fontSize: 13, fontWeight: '900', marginBottom: 12, textAlign: 'left' },
 
   tableGridContainer: { backgroundColor: 'rgba(75, 83, 32, 0.05)', borderRadius: 12, padding: 8, gap: 8 },
-  tableRow: { flexDirection: 'row-reverse', gap: 8 },
+  tableRow: { flexDirection: 'row', gap: 8 },
   tableCellInput: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.8)', color: '#3f4a2e', borderRadius: 8, padding: 10, textAlign: 'center', fontSize: 13, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.1)' },
 
   subContainerEn: { paddingLeft: 16, borderLeftWidth: 2.5, borderLeftColor: 'rgba(75, 83, 32, 0.2)', marginLeft: 4, marginTop: 12 },
-  subHeaderRow: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  addSubBtn: { flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: 'rgba(75, 83, 32, 0.08)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)' },
-  addSubText: { color: '#4B5320', fontSize: 12, fontWeight: '800', marginRight: 6 },
-  subItemRow: { flexDirection: 'row-reverse', alignItems: 'flex-start', marginBottom: 10 },
-  subLetterBadge: { width: 34, height: 34, justifyContent: 'center', alignItems: 'center', borderRadius: 8, marginLeft: 10, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)' },
+  subHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  addSubBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(75, 83, 32, 0.08)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)' },
+  addSubText: { color: '#4B5320', fontSize: 12, fontWeight: '800', marginLeft: 6 },
+  subItemRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 },
+  subLetterBadge: { width: 34, height: 34, justifyContent: 'center', alignItems: 'center', borderRadius: 8, marginRight: 10, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)' },
   subLetterText: { color: '#4B5320', fontWeight: '900', fontSize: 13 },
   subInput: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.8)', color: '#3f4a2e', borderRadius: 10, padding: 10, textAlign: 'left', fontSize: 13, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)' },
-  subDeleteBtn: { padding: 6, marginLeft: 4, justifyContent: 'center' },
+  subDeleteBtn: { padding: 6, marginRight: 4, justifyContent: 'center' },
 
-  innerBtn: { flexDirection: 'row-reverse', gap: 8, backgroundColor: 'rgba(75, 83, 32, 0.08)', height: 46, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)', marginTop: 6 },
+  innerBtn: { flexDirection: 'row', gap: 8, backgroundColor: 'rgba(75, 83, 32, 0.08)', height: 46, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)', marginTop: 6 },
   innerBtnText: { color: '#4B5320', fontSize: 14, fontWeight: '800' },
 
-  addQuestionBtn: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.3)', marginTop: 10, borderStyle: 'dashed' },
-  addQuestionText: { color: '#4B5320', fontSize: 16, fontWeight: '900', marginRight: 10 },
+  addQuestionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.3)', marginTop: 10, borderStyle: 'dashed' },
+  addQuestionText: { color: '#4B5320', fontSize: 16, fontWeight: '900', marginLeft: 10 },
 
   floatingDockContainer: { position: 'absolute', bottom: Platform.OS === 'ios' ? 30 : 20, left: 20, right: 20, alignItems: 'center', justifyContent: 'center' },
-  floatingDock: { flexDirection: 'row-reverse', alignItems: 'center', borderRadius: 24, overflow: 'hidden', padding: 8, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)', width: '100%', maxWidth: 400 },
-  dockBtn: { flex: 1, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, gap: 10 },
+  floatingDock: { flexDirection: 'row', alignItems: 'center', borderRadius: 24, overflow: 'hidden', padding: 8, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)', width: '100%', maxWidth: 400 },
+  dockBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, gap: 10 },
   dockIconBg: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   dockBtnText: { fontSize: 14, fontWeight: '900' },
   dockDivider: { width: 1, height: '60%', backgroundColor: 'rgba(75, 83, 32, 0.2)' }

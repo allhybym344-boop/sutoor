@@ -3,11 +3,10 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import { useRouter } from 'expo-router';
-import { shareAsync } from 'expo-sharing';
-import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { useSubscription } from '../context/SubscriptionContext';
 import { setExamStore } from '../utils/examStore';
-import { useSubscription } from './context/SubscriptionContext';
 
 const arabicFonts = [
   { label: 'كايرو (Cairo - موصى به)', value: 'Cairo' },
@@ -93,12 +92,11 @@ export default function WeeklyTimetableMaker() {
   const { handleExportAttempt, getWatermarkHTML } = useSubscription();
 
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
 
   const [meta, setMeta] = useState({
-    school: 'مدرسة النهرين الابتدائية',
+    school: 'مدرسة السطور الابتدائية',
     title: 'جدول الحصص المدرسي الأسبوعي',
-    target: 'الصف السادس الابتدائي (فصل أ)',
+    target: 'الصف السادس الابتدائي ',
     term: 'الفصل الدراسي الثاني 2026',
     primaryColor: '#3f6212',
     font: 'Cairo'
@@ -109,9 +107,9 @@ export default function WeeklyTimetableMaker() {
 
   const [timetable, setTimetable] = useState<Record<string, Record<number, string>>>({
     'الأحد': { 1: 'الرياضيات', 2: 'العلوم', 3: 'لغة عربية', 4: 'إنجليزي', 5: 'تربية إسلامية', 6: 'قواعد' },
-    'الإثنين': { 1: 'لغة عربية', 2: 'رياضيات', 3: 'حاسب آلي', 4: 'اجتماعيات', 5: 'علوم', 6: 'رياضة بدنية' },
+    'الإثنين': { 1: 'لغة عربية', 2: 'رياضيات', 3: 'حاسوب ', 4: 'اجتماعيات', 5: 'علوم', 6: 'رياضة بدنية' },
     'الثلاثاء': { 1: 'علوم', 2: 'إنجليزي', 3: 'رياضيات', 4: 'تربية إسلامية', 5: 'اجتماعيات', 6: 'لغة عربية' },
-    'الأربعاء': { 1: 'رياضيات', 2: 'تربية إسلامية', 3: 'علوم', 4: 'إنجليزي', 5: 'حاسب آلي', 6: 'قواعد' },
+    'الأربعاء': { 1: 'رياضيات', 2: 'تربية إسلامية', 3: 'علوم', 4: 'إنجليزي', 5: 'حاسوب ', 6: 'قواعد' },
     'الخميس': { 1: 'اجتماعيات', 2: 'لغة عربية', 3: 'علوم', 4: 'رياضيات', 5: 'نشاط مدرسي', 6: 'نشاط مدرسي' }
   });
 
@@ -258,21 +256,6 @@ export default function WeeklyTimetableMaker() {
     } 
   };
 
-  const handleExport = async () => { 
-    const canExport = await handleExportAttempt();
-    if (!canExport) return;
-
-    setIsGenerating(true); 
-    try { 
-      const { uri } = await Print.printToFileAsync({ html: generateHTML() }); 
-      await shareAsync(uri); 
-    } catch { 
-      Alert.alert('خطأ', 'فشل التصدير'); 
-    } finally { 
-      setIsGenerating(false); 
-    } 
-  };
-
   return (
     <View style={styles.mainWrapper}>
       <LinearGradient colors={['#ffffff', '#b7d38d', '#3f6b09']} style={StyleSheet.absoluteFillObject} />
@@ -334,23 +317,18 @@ export default function WeeklyTimetableMaker() {
 
       </ScrollView>
 
+      {/* الأزرار العائمة السفلية */}
       <View style={styles.floatingBarContainer}>
         <TouchableOpacity activeOpacity={0.8} style={styles.previewBtn} onPress={handlePreview}>
           <Ionicons name="eye-outline" size={22} color="#3f6212" />
+          <Text style={styles.actionBtnText}>معاينة</Text>
         </TouchableOpacity>
-        <TouchableOpacity activeOpacity={0.8} style={styles.printBtn} onPress={handlePrint}>
-          <Ionicons name="print-outline" size={22} color="#3f6212" />
-        </TouchableOpacity>
-        <TouchableOpacity activeOpacity={0.85} style={styles.exportTouchWrapper} onPress={handleExport} disabled={isGenerating}>
-          <LinearGradient colors={['#3f6212', '#365314', '#1a2e05']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.exportBtn}>
-            {isGenerating ? <ActivityIndicator color="#fff" size="small" /> : (
-              <>
-                <View style={styles.exportIconBadge}>
-                  <Ionicons name="cloud-download-outline" size={18} color="#ffffff" />
-                </View>
-                <Text style={styles.exportBtnText}>تصدير وتحميل الجدول A4 PDF</Text>
-              </>
-            )}
+        <TouchableOpacity activeOpacity={0.85} style={styles.printTouchWrapper} onPress={handlePrint}>
+          <LinearGradient colors={['#3f6212', '#365314', '#1a2e05']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.printBtn}>
+            <View style={styles.printIconBadge}>
+              <Ionicons name="print-outline" size={18} color="#ffffff" />
+            </View>
+            <Text style={styles.printBtnText}>طباعة مباشرة</Text>
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -395,10 +373,10 @@ const styles = StyleSheet.create({
   dropdownItemTextSelected: { color: '#3f6212', fontWeight: 'bold' },
 
   floatingBarContainer: { position: 'absolute', bottom: 12, left: 16, right: 16, flexDirection: 'row-reverse', alignItems: 'center', gap: 10, padding: 10, borderRadius: 24, backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(101, 163, 13, 0.3)', shadowColor: '#4d7c0f', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 10, elevation: 6 },
-  previewBtn: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(77, 124, 15, 0.08)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(77, 124, 15, 0.2)' },
-  printBtn: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(77, 124, 15, 0.08)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(77, 124, 15, 0.2)' },
-  exportTouchWrapper: { flex: 1, height: 48, borderRadius: 16, overflow: 'hidden' },
-  exportBtn: { flex: 1, flexDirection: 'row-reverse', justifyContent: 'center', alignItems: 'center', gap: 10 },
-  exportIconBadge: { width: 30, height: 30, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
-  exportBtnText: { color: '#ffffff', fontSize: 14, fontWeight: 'bold', fontFamily: 'Tajawal' }
+  previewBtn: { width: 110, height: 48, borderRadius: 16, backgroundColor: 'rgba(77, 124, 15, 0.08)', flexDirection: 'row-reverse', justifyContent: 'center', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: 'rgba(77, 124, 15, 0.2)' },
+  actionBtnText: { color: '#3f6212', fontSize: 13, fontWeight: 'bold', fontFamily: 'Tajawal' },
+  printTouchWrapper: { flex: 1, height: 48, borderRadius: 16, overflow: 'hidden' },
+  printBtn: { flex: 1, flexDirection: 'row-reverse', justifyContent: 'center', alignItems: 'center', gap: 10 },
+  printIconBadge: { width: 30, height: 30, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
+  printBtnText: { color: '#ffffff', fontSize: 14, fontWeight: 'bold', fontFamily: 'Tajawal' }
 });

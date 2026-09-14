@@ -4,13 +4,11 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import { useRouter } from 'expo-router';
-import { shareAsync } from 'expo-sharing';
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   StatusBar,
@@ -21,8 +19,8 @@ import {
   View
 } from 'react-native';
 
+import { useSubscription } from '../../context/SubscriptionContext';
 import { setExamStore } from '../../utils/examStore';
-import { useSubscription } from '../context/SubscriptionContext';
 
 type BlockType =
   | 'text' | 'fraction' | 'root_fraction' | 'simple_root'
@@ -69,44 +67,102 @@ interface QuestionItem {
   branches: Branch[];
 }
 
+interface ModalDropdownProps {
+  label: string;
+  value: string;
+  options: { label: string; value: string }[];
+  isOpen: boolean;
+  onToggle: () => void;
+  onSelect: (value: string) => void;
+}
+
+function ModalDropdown({ label, value, options, isOpen, onToggle, onSelect }: ModalDropdownProps) {
+  const selectedOption = options.find(o => o.value === value);
+  return (
+    <View style={styles.dropdownWrapperNew}>
+      <Text style={styles.subLabel}>{label}</Text>
+      <TouchableOpacity style={styles.dropdownHeaderNew} onPress={onToggle} activeOpacity={0.7}>
+        <View style={styles.dropdownHeaderInner}>
+          <Ionicons name={isOpen ? "chevron-up" : "chevron-down"} size={16} color="#4B5320" />
+          <Text style={styles.dropdownHeaderText} numberOfLines={1}>
+            {selectedOption ? selectedOption.label : value}
+          </Text>
+        </View>
+      </TouchableOpacity>
+      {isOpen && (
+        <View style={{ backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)', borderRadius: 16, marginTop: 4, padding: 8, maxHeight: 220 }}>
+          <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
+            {options.map((opt) => (
+              <TouchableOpacity
+                key={opt.value}
+                style={[styles.dropdownItem, opt.value === value && styles.dropdownItemSelected]}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  onSelect(opt.value);
+                  onToggle();
+                }}
+              >
+                <Text style={[styles.dropdownItemText, opt.value === value && styles.dropdownItemTextSelected]} numberOfLines={1}>
+                  {opt.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+    </View>
+  );
+}
+
 const FONTS = [
-  { label: 'تاجوال (Tajawal)', value: 'Tajawal' },
-  { label: 'كايرو (Cairo)', value: 'Cairo' },
-  { label: 'المراعي (Almarai)', value: 'Almarai' },
-  { label: 'أميري (Amiri - بحوث وكتب)', value: 'Amiri' },
-  { label: 'شنجا (Changa - عريض)', value: 'Changa' },
-  { label: 'إي بي إم (IBM Plex Sans Arabic)', value: 'IBM Plex Sans Arabic' },
   { label: 'العربي التقليدي (Traditional Arabic)', value: 'Traditional Arabic' },
-  { label: 'العربي المبسط (Simplified Arabic)', value: 'Simplified Arabic' }
+  { label: 'العربي المبسط (Simplified Arabic)', value: 'Simplified Arabic' },
+  { label: 'تخطيط العربية (Arabic Typesetting)', value: 'Arabic Typesetting' },
+  { label: 'تاهوما (Tahoma - ممتاز للشاشات)', value: 'Tahoma' },
+  { label: 'سقالة مجلة (Sakkal Majalla)', value: 'Sakkal Majalla' },
+  { label: 'أندلس (Andalus - للعناوين والزخرفة)', value: 'Andalus' },
+  { label: 'أميري (Amiri - للبحوث والكتب)', value: 'Amiri' },
+  { label: 'كايرو (Cairo - عصري)', value: 'Cairo' },
+  { label: 'تجوال (Tajawal - انسيابي)', value: 'Tajawal' },
+  { label: 'شنجا (Changa - عريض)', value: 'Changa' }
 ];
 
 const COLORS = [
-  { label: 'أسود كلاسيكي', value: '#000000' },
-  { label: 'زيتوني أساسي', value: '#4B5320' },
   { label: 'زيتوني داكن', value: '#3f4a2e' },
+  { label: 'زيتوني أساسي', value: '#4B5320' },
   { label: 'أزرق ملكي', value: '#1e3a8a' },
   { label: 'أسود فحمي', value: '#0f172a' },
   { label: 'أخضر زمردي', value: '#065f46' },
   { label: 'عنابي داكن', value: '#7f1d1d' },
-  { label: 'رمادي صلب', value: '#334155' }
+  { label: 'رمادي صلب', value: '#334155' },
+  { label: 'أحمر قرمزي', value: '#be123c' },
+  { label: 'أزرق بحري', value: '#0e7490' }
 ];
 
-const HEADER_BG_COLORS = [
-  { label: 'بدون تظليل (أبيض)', value: '#ffffff' },
-  { label: 'رمادي فاتح جداً', value: '#f8fafc' },
-  { label: 'أزرق سماوي فاتح', value: '#f0f9ff' },
-  { label: 'أخضر نعناعي فاتح', value: '#f0fdf4' },
-  { label: 'أصفر ليموني خفيف', value: '#fefce8' },
-  { label: 'بنفسجي فاتح', value: '#faf5ff' },
-  { label: 'وردي ناعم', value: '#fdf2f8' }
+const headerShadingOptions = [
+  { label: 'بدون تظليل (أبيض)', value: 'none' },
+  { label: 'تأثير زجاجي فخم', value: 'glass' },
+  { label: 'تدرج فخم (Gradient)', value: 'gradient' },
+  { label: 'أزرق هادئ', value: 'blue_light' },
+  { label: 'رمادي عصري', value: 'gray_light' },
+  { label: 'أخضر هادئ', value: 'green_light' }
 ];
 
-const FRAME_TYPES = [
-  { id: 'double', label: 'إطار كلاسيكي مزدوج (Double)', css: 'border: 3px double #000; padding: 15px;' },
-  { id: 'solid', label: 'إطار رفيع وبسيط (Solid)', css: 'border: 1px solid #000; padding: 15px;' },
-  { id: 'thick', label: 'إطار عريض وبارز (Thick)', css: 'border: 4px solid #000; padding: 15px;' },
-  { id: 'dashed', label: 'إطار مُنقط فاخر (Dashed)', css: 'border: 2px dashed #000; padding: 15px;' },
-  { id: 'none', label: 'بدون إطار خارجي (None)', css: 'border: none; padding: 5px;' },
+const borderStylesOptions = [
+  { label: 'بدون إطار (None)', value: 'none' },
+  { label: 'مزدوج رسمي (Double)', value: 'double' },
+  { label: 'خط متصل (Solid)', value: 'solid' },
+  { label: 'خط منقط (Dashed)', value: 'dashed' },
+  { label: 'نقطي دقيق (Dotted)', value: 'dotted' },
+  { label: 'ثلاثي الأبعاد غروفي (Groove)', value: 'groove' },
+  { label: 'حافة بارزة (Ridge)', value: 'ridge' }
+];
+
+const borderWidthOptions = [
+  { label: 'رفيع (2px)', value: '2px' },
+  { label: 'متوسط (4px)', value: '4px' },
+  { label: 'سميك (6px)', value: '6px' },
+  { label: 'عريض جداً (8px)', value: '8px' }
 ];
 
 const layoutTemplates = [
@@ -127,37 +183,48 @@ const layoutTemplates = [
   { id: 'bold', label: 'العريض', desc: 'تركيز عالي وضخم على العنوان' }
 ];
 
+const sizeOptions = [
+  { label: 'صغير جداً (10px)', value: '10px' },
+  { label: 'صغير (12px)', value: '12px' },
+  { label: 'أساسي (14px)', value: '14px' },
+  { label: 'متوسط (15px)', value: '15px' },
+  { label: 'كبير (17px)', value: '17px' },
+  { label: 'كبير جداً (20px)', value: '20px' },
+  { label: 'ضخم (24px)', value: '24px' }
+];
+
 export default function MathExamMinisterialScreen() {
   const router = useRouter();
   const { handleExportAttempt, getWatermarkHTML } = useSubscription();
   const [activeTab, setActiveTab] = useState<'settings' | 'questions'>('settings');
 
   const [isPrinting, setIsPrinting] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
 
-  // الترويسة والذيل
-  const [schoolName, setSchoolName] = useState('مدرسة النهرين الابتدائية الأهلية');
-  const [examTitle, setExamTitle] = useState('امتحان نهاية الكورس الأول');
-  const [examYear, setExamYear] = useState('للعام الدراسي 2025 - 2026 م');
-  const [className, setClassName] = useState('الصف: السادس الإعدادي');
-  const [subject, setSubject] = useState('المادة: الرياضيات');
-  const [examTime, setExamTime] = useState('الوقت: ثلاث ساعات');
-  const [instructions, setInstructions] = useState('ملاحظة: الإجابة عن خمسة أسئلة فقط، ولكل سؤال 20 درجة.');
-  const [teacherName, setTeacherName] = useState('أ. مصطفى خالد');
-  
-  // التصميم والتظليل والإطارات والقوالب
-  const [selectedFont, setSelectedFont] = useState(FONTS[0].value);
-  const [selectedColor, setSelectedColor] = useState(COLORS[0].value);
-  const [selectedHeaderBg, setSelectedHeaderBg] = useState(HEADER_BG_COLORS[0].value);
-  const [selectedFrame, setSelectedFrame] = useState(FRAME_TYPES[0].id);
-  const [selectedTemplate, setSelectedTemplate] = useState('classic');
-  const [fontSize, setFontSize] = useState(16);
+  const [examMeta, setExamMeta] = useState({
+    school: 'مدرسة النهرين الابتدائية الأهلية',
+    examTitle: 'امتحان نهاية الكورس الأول',
+    academicYear: 'العام الدراسي 2025 - 2026 م',
+    grade: 'الصف: السادس الإعدادي',
+    subject: 'مادة الرياضيات',
+    time: 'الوقت: ثلاث ساعات',
+    teacherName: 'أ. مصطفى خالد',
+    closingText: 'مع تمنياتنا للجميع بالتوفيق والنجاح'
+  });
+
+  const [examNote, setExamNote] = useState('ملاحظة: الإجابة عن خمسة أسئلة فقط، ولكل سؤال 20 درجة.');
+
+  const [examConfig, setExamConfig] = useState({
+    layoutTemplate: 'classic',
+    header: { font: 'Traditional Arabic', size: '14.5px', color: '#0f172a' },
+    questions: { font: 'Simplified Arabic', size: '15px', color: '#0f172a' },
+    pageBorder: { style: 'double', width: '4px', color: '#0f172a' },
+    pdfHeaderShading: 'none'
+  });
 
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
-  // الأسئلة والفروع
   const [questions, setQuestions] = useState<QuestionItem[]>([]);
-  const [currentQuestionNum, setCurrentQuestionNum] = useState('س1');
+  const [currentQuestionNum, setCurrentQuestionNum] = useState('السؤال الأول');
   const [currentBranchLabel, setCurrentBranchLabel] = useState('A');
   const [branchPrompt, setBranchPrompt] = useState('جد ناتج ما يأتي:');
   const [currentBlocks, setCurrentBlocks] = useState<Block[]>([]);
@@ -274,8 +341,9 @@ export default function MathExamMinisterialScreen() {
     setBranchPrompt('');
     setCurrentBlocks([]);
     const nextNum = questions.length + 2;
-    if (currentQuestionNum.startsWith('س')) setCurrentQuestionNum(`س${nextNum}`);
-    else setCurrentQuestionNum(`${nextNum}`);
+    if (currentQuestionNum.includes('الثاني')) setCurrentQuestionNum('السؤال الثالث');
+    else if (currentQuestionNum.includes('الأول')) setCurrentQuestionNum('السؤال الثاني');
+    else setCurrentQuestionNum(`السؤال ${nextNum}`);
     setCurrentBranchLabel('A');
   };
 
@@ -298,11 +366,11 @@ export default function MathExamMinisterialScreen() {
     
     blocks.forEach((b) => {
       if (b.type === 'text') {
-        html += `<span style="margin: 0 2px; font-weight: bold; font-family: '${selectedFont}', sans-serif;">${b.value || ''}</span>`;
+        html += `<span style="margin: 0 2px; font-weight: bold; font-family: '${examConfig.questions.font}', sans-serif;">${b.value || ''}</span>`;
       } else if (b.type === 'fraction') {
         html += `
           <span style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 6px; font-family: 'Times New Roman', serif; font-weight: bold; vertical-align: middle; direction: ltr;">
-            <span style="border-bottom: 2px solid ${selectedColor}; padding: 2px 6px; min-width: 15px; text-align: center;">${b.top || '&nbsp;'}</span>
+            <span style="border-bottom: 2px solid ${examConfig.header.color}; padding: 2px 6px; min-width: 15px; text-align: center;">${b.top || '&nbsp;'}</span>
             <span style="padding: 2px 6px; min-width: 15px; text-align: center;">${b.bottom || '&nbsp;'}</span>
           </span>
         `;
@@ -316,7 +384,7 @@ export default function MathExamMinisterialScreen() {
             <span style="display: inline-flex; align-items: flex-end; margin: 0 2px; font-family: 'Times New Roman', serif; direction: ltr;">
               ${idxSup}
               <span style="font-size: 2.1em; line-height: 0.8; font-weight: 300; margin-bottom: -2px;">√</span>
-              <span style="border-top: 1.5px solid ${selectedColor}; padding: 3px 5px 0 5px; font-weight: bold; margin-bottom: 2px;">${b.topInner}${expSup}</span>
+              <span style="border-top: 1.5px solid ${examConfig.header.color}; padding: 3px 5px 0 5px; font-weight: bold; margin-bottom: 2px;">${b.topInner}${expSup}</span>
             </span>
           `;
         }
@@ -331,7 +399,7 @@ export default function MathExamMinisterialScreen() {
             <span style="display: inline-flex; align-items: flex-end; margin: 0 2px; font-family: 'Times New Roman', serif; direction: ltr;">
               ${idxSup}
               <span style="font-size: 2.1em; line-height: 0.8; font-weight: 300; margin-bottom: -2px;">√</span>
-              <span style="border-top: 1.5px solid ${selectedColor}; padding: 3px 5px 0 5px; font-weight: bold; margin-bottom: 2px;">${b.bottomInner}${expSup}</span>
+              <span style="border-top: 1.5px solid ${examConfig.header.color}; padding: 3px 5px 0 5px; font-weight: bold; margin-bottom: 2px;">${b.bottomInner}${expSup}</span>
             </span>
           `;
         }
@@ -339,7 +407,7 @@ export default function MathExamMinisterialScreen() {
 
         html += `
           <span style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 6px; font-family: 'Times New Roman', serif; font-weight: bold; vertical-align: middle; direction: ltr;">
-            <span style="border-bottom: 2px solid ${selectedColor}; padding: 2px 8px; min-width: 20px; text-align: center; display: inline-flex; align-items: center;">${topH}</span>
+            <span style="border-bottom: 2px solid ${examConfig.header.color}; padding: 2px 8px; min-width: 20px; text-align: center; display: inline-flex; align-items: center;">${topH}</span>
             <span style="padding: 2px 8px; min-width: 20px; text-align: center; display: inline-flex; align-items: center;">${botH}</span>
           </span>
         `;
@@ -349,7 +417,7 @@ export default function MathExamMinisterialScreen() {
           <span style="display: inline-flex; align-items: flex-end; margin: 0 4px; font-family: 'Times New Roman', serif; direction: ltr;">
             ${indexSup}
             <span style="font-size: 2.1em; line-height: 0.8; font-weight: 300; margin-bottom: -2px;">√</span>
-            <span style="border-top: 1.5px solid ${selectedColor}; padding: 3px 5px 0 5px; font-weight: bold; margin-bottom: 2px;">${b.inner || '&nbsp;'}</span>
+            <span style="border-top: 1.5px solid ${examConfig.header.color}; padding: 3px 5px 0 5px; font-weight: bold; margin-bottom: 2px;">${b.inner || '&nbsp;'}</span>
           </span>
         `;
       } else if (b.type === 'power') {
@@ -379,7 +447,7 @@ export default function MathExamMinisterialScreen() {
           <span style="font-size: 1.1em; font-weight: bold; font-family: 'Times New Roman', serif; margin-left: 4px; vertical-align: middle;">${b.body || ''}</span>
         `;
       } else if (b.type === 'absolute') {
-        html += `<span style="display: inline-flex; align-items: center; margin: 0 3px; font-family: 'Times New Roman', serif; font-weight: bold; direction: ltr;"><span style="font-size: 1.3em; border-left: 2px solid ${selectedColor}; border-right: 2px solid ${selectedColor}; padding: 0 5px;">${b.inner || ''}</span></span>`;
+        html += `<span style="display: inline-flex; align-items: center; margin: 0 3px; font-family: 'Times New Roman', serif; font-weight: bold; direction: ltr;"><span style="font-size: 1.3em; border-left: 2px solid ${examConfig.header.color}; border-right: 2px solid ${examConfig.header.color}; padding: 0 5px;">${b.inner || ''}</span></span>`;
       } else if (b.type === 'brackets') {
         html += `<span style="display: inline-flex; align-items: center; margin: 0 3px; font-family: 'Times New Roman', serif; font-weight: bold; direction: ltr;"><span style="font-size: 1.5em; font-weight: 300;">[</span><span style="padding: 0 3px; font-size: 1.1em;">${b.inner || ''}</span><span style="font-size: 1.5em; font-weight: 300;">]</span></span>`;
       }
@@ -389,186 +457,205 @@ export default function MathExamMinisterialScreen() {
     return html;
   };
 
-  const renderHeaderHTML = (isSubtitle: boolean = false) => {
-    const titleText = isSubtitle ? `${examTitle} (تابع)` : examTitle;
-    const t = selectedTemplate;
+  const getBackgroundColor = (type: string) => {
+    const colors: Record<string, string> = {
+      blue_light: '#eff6ff', gray_light: '#f8fafc', green_light: '#f0fdf4',
+      none: 'transparent', gradient: 'linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)', glass: 'rgba(255,255,255,0.45)'
+    };
+    return colors[type] || 'transparent';
+  };
 
-    switch (t) {
+  const generateHeaderHTML = () => {
+    const tpl = examConfig.layoutTemplate;
+    const hColor = examConfig.header.color;
+    let headerBgCSS = getBackgroundColor(examConfig.pdfHeaderShading);
+    if (examConfig.pdfHeaderShading === 'none') headerBgCSS = '#ffffff';
+
+    switch (tpl) {
       case 'ministry':
         return `
           <div class="exam-header" style="margin-bottom:24px;">
-            <table style="width: 100%; border-collapse: collapse; border: 2px solid ${selectedColor}; background: ${selectedHeaderBg};">
+            <table style="width: 100%; border-collapse: collapse; border: 2px solid ${hColor}; background: ${headerBgCSS};">
               <tr>
-                <td style="border: 1px solid ${selectedColor}; padding: 10px; width: 30%; text-align: right; vertical-align: middle;">
-                  <div style="font-weight: bold; margin-bottom: 4px;">${schoolName}</div>
-                  <div>المادة: ${subject}</div>
+                <td style="border: 1px solid ${hColor}; padding: 10px; width: 30%; text-align: right; vertical-align: middle;">
+                  <div style="font-weight: bold; margin-bottom: 4px;">${examMeta.school}</div>
+                  <div>المادة: ${examMeta.subject}</div>
                 </td>
-                <td style="border: 1px solid ${selectedColor}; padding: 10px; width: 40%; text-align: center; vertical-align: middle;">
-                  <h1 style="margin: 0 0 6px 0; font-size: ${fontSize + 4}px; font-weight: 900; color: ${selectedColor};">${titleText}</h1>
-                  <div style="font-weight: bold;">${examYear}</div>
+                <td style="border: 1px solid ${hColor}; padding: 10px; width: 40%; text-align: center; vertical-align: middle;">
+                  <h1 style="margin: 0 0 6px 0; font-size: calc(${examConfig.header.size} + 4px); font-weight: 900; color: ${hColor};">${examMeta.examTitle}</h1>
+                  <div style="font-weight: bold;">${examMeta.academicYear}</div>
                 </td>
-                <td style="border: 1px solid ${selectedColor}; padding: 10px; width: 30%; text-align: left; vertical-align: middle;">
-                  <div style="font-weight: bold; margin-bottom: 4px;">الصف: ${className}</div>
-                  <div>الزمن: ${examTime}</div>
+                <td style="border: 1px solid ${hColor}; padding: 10px; width: 30%; text-align: left; vertical-align: middle;">
+                  <div style="font-weight: bold; margin-bottom: 4px;">الصف: ${examMeta.grade}</div>
+                  <div>الزمن: ${examMeta.time}</div>
                 </td>
               </tr>
             </table>
           </div>`;
       case 'modern':
         return `
-          <div class="exam-header" style="background: ${selectedHeaderBg}; border-radius: 16px; padding: 20px; margin-bottom:20px;">
+          <div class="exam-header" style="background: ${headerBgCSS}; border-radius: 16px; padding: 20px; margin-bottom:20px;">
             <div style="text-align: center; width: 100%;">
-              <h1 style="margin: 0 0 8px 0; font-size: ${fontSize + 6}px; font-weight: 900; color: #fff; background: ${selectedColor}; padding: 8px 20px; display: inline-block; border-radius: 20px;">${titleText}</h1>
-              <div style="display: flex; justify-content: space-between; margin-top: 15px; padding: 0 10px; font-weight: 700; color: ${selectedColor}; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 15px;">
-                <div style="text-align: right; line-height: 1.6;"><div>${schoolName}</div><div>${subject}</div></div>
-                <div style="text-align: center; line-height: 1.6;"><div style="color: #64748b;">${examYear}</div></div>
-                <div style="text-align: left; line-height: 1.6;"><div>${className}</div><div>${examTime}</div></div>
+              <h1 style="margin: 0 0 8px 0; font-size: calc(${examConfig.header.size} + 6px); font-weight: 900; color: #fff; background: ${hColor}; padding: 8px 20px; display: inline-block; border-radius: 20px;">${examMeta.examTitle}</h1>
+              <div style="display: flex; justify-content: space-between; margin-top: 15px; padding: 0 10px; font-weight: 700; color: ${hColor}; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 15px;">
+                <div style="text-align: right; line-height: 1.6;"><div>${examMeta.school}</div><div>المادة: ${examMeta.subject}</div></div>
+                <div style="text-align: center; line-height: 1.6;"><div style="color: #64748b;">${examMeta.academicYear}</div></div>
+                <div style="text-align: left; line-height: 1.6;"><div>${examMeta.grade}</div><div>${examMeta.time}</div></div>
               </div>
             </div>
           </div>`;
       case 'minimalist':
         return `
           <div class="exam-header" style="background: transparent; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 25px; display:flex; flex-direction: column;">
-            <h1 style="margin: 0 0 5px 0; font-size: ${fontSize + 6}px; font-weight: 900; color: #000;">${titleText}</h1>
+            <h1 style="margin: 0 0 5px 0; font-size: calc(${examConfig.header.size} + 6px); font-weight: 900; color: #000;">${examMeta.examTitle}</h1>
             <div style="display: flex; width: 100%; justify-content: space-between; font-weight: 600; color: #333; margin-top: 8px;">
-              <div>${schoolName} &nbsp;|&nbsp; ${subject}</div>
-              <div>${className} &nbsp;|&nbsp; ${examYear} &nbsp;|&nbsp; ${examTime}</div>
+              <div>${examMeta.school} &nbsp;|&nbsp; ${examMeta.subject}</div>
+              <div>${examMeta.grade} &nbsp;|&nbsp; ${examMeta.academicYear} &nbsp;|&nbsp; ${examMeta.time}</div>
             </div>
           </div>`;
       case 'boxed':
         return `
           <div class="exam-header" style="display:flex; justify-content:space-between; gap:10px; margin-bottom:20px;">
-            <div style="flex:1; border: 2px solid ${selectedColor}; border-radius: 8px; padding: 12px; text-align: right; background: ${selectedHeaderBg};">
-              <div style="font-weight:900; color:${selectedColor}; margin-bottom:4px;">${schoolName}</div>
-              <div style="color:#334155;">${subject}</div>
+            <div style="flex:1; border: 2px solid ${hColor}; border-radius: 8px; padding: 12px; text-align: right; background: ${headerBgCSS};">
+              <div style="font-weight:900; color:${hColor}; margin-bottom:4px;">${examMeta.school}</div>
+              <div style="color:#334155;">المادة: ${examMeta.subject}</div>
             </div>
-            <div style="flex:1.2; border: 2px solid ${selectedColor}; border-radius: 8px; padding: 12px; text-align: center; background: ${selectedHeaderBg};">
-              <h1 style="margin:0 0 4px 0; font-size: ${fontSize + 2}px; font-weight:900; color:${selectedColor};">${titleText}</h1>
-              <div style="color:#64748b;">${examYear}</div>
+            <div style="flex:1.2; border: 2px solid ${hColor}; border-radius: 8px; padding: 12px; text-align: center; background: ${headerBgCSS};">
+              <h1 style="margin:0 0 4px 0; font-size: calc(${examConfig.header.size} + 2px); font-weight:900; color:${hColor};">${examMeta.examTitle}</h1>
+              <div style="color:#64748b;">${examMeta.academicYear}</div>
             </div>
-            <div style="flex:1; border: 2px solid ${selectedColor}; border-radius: 8px; padding: 12px; text-align: left; background: ${selectedHeaderBg};">
-              <div style="font-weight:900; color:${selectedColor}; margin-bottom:4px;">${className}</div>
-              <div style="color:#334155;">${examTime}</div>
+            <div style="flex:1; border: 2px solid ${hColor}; border-radius: 8px; padding: 12px; text-align: left; background: ${headerBgCSS};">
+              <div style="font-weight:900; color:${hColor}; margin-bottom:4px;">${examMeta.grade}</div>
+              <div style="color:#334155;">الزمن: ${examMeta.time}</div>
             </div>
           </div>`;
       case 'elegant':
         return `
-          <div class="exam-header" style="border-top: 3px double ${selectedColor}; border-bottom: 3px double ${selectedColor}; padding: 15px 0; margin-bottom: 25px; text-align: center; background: ${selectedHeaderBg};">
-            <h1 style="margin: 0 0 10px 0; font-size: ${fontSize + 6}px; font-weight: 900; color: ${selectedColor};">${titleText}</h1>
+          <div class="exam-header" style="border-top: 3px double ${hColor}; border-bottom: 3px double ${hColor}; padding: 15px 0; margin-bottom: 25px; text-align: center; background: ${headerBgCSS};">
+            <h1 style="margin: 0 0 10px 0; font-size: calc(${examConfig.header.size} + 6px); font-weight: 900; color: ${hColor};">${examMeta.examTitle}</h1>
             <div style="display: flex; justify-content: space-around; font-weight: 600; color: #475569;">
-              <span>${schoolName}</span><span>•</span><span>${subject}</span><span>•</span><span>${className}</span><span>•</span><span>${examTime}</span>
+              <span>${examMeta.school}</span><span>•</span><span>${examMeta.subject}</span><span>•</span><span>${examMeta.grade}</span><span>•</span><span>${examMeta.time}</span>
             </div>
           </div>`;
       case 'centered':
         return `
-          <div class="exam-header" style="text-align: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 2px solid rgba(0,0,0,0.1); background: ${selectedHeaderBg};">
-            <h3 style="margin: 0 0 5px 0; color: #475569;">${schoolName}</h3>
-            <h1 style="margin: 0 0 10px 0; font-size: ${fontSize + 8}px; font-weight: 900; color: ${selectedColor};">${titleText}</h1>
+          <div class="exam-header" style="text-align: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 2px solid rgba(0,0,0,0.1); background: ${headerBgCSS};">
+            <h3 style="margin: 0 0 5px 0; color: #475569;">${examMeta.school}</h3>
+            <h1 style="margin: 0 0 10px 0; font-size: calc(${examConfig.header.size} + 8px); font-weight: 900; color: ${hColor};">${examMeta.examTitle}</h1>
             <div style="font-weight: bold; color: #334155; display: inline-flex; gap: 20px; background: rgba(0,0,0,0.03); padding: 5px 15px; border-radius: 20px;">
-              <span>${subject}</span><span>${className}</span><span>${examTime}</span>
+              <span>المادة: ${examMeta.subject}</span><span>الصف: ${examMeta.grade}</span><span>الزمن: ${examMeta.time}</span>
             </div>
           </div>`;
       case 'ribbon':
         return `
-          <div class="exam-header" style="margin-bottom: 25px; background: ${selectedHeaderBg};">
-            <div style="background: ${selectedColor}; color: #ffffff; text-align: center; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
-              <h1 style="margin: 0; font-size: ${fontSize + 4}px; font-weight: 900;">${titleText}</h1>
+          <div class="exam-header" style="margin-bottom: 25px; background: ${headerBgCSS};">
+            <div style="background: ${hColor}; color: #ffffff; text-align: center; padding: 12px; border-radius: 6px; margin-bottom: 15px;">
+              <h1 style="margin: 0; font-size: calc(${examConfig.header.size} + 4px); font-weight: 900;">${examMeta.examTitle}</h1>
             </div>
             <div style="display: flex; justify-content: space-between; font-weight: 700; color: #334155; padding: 0 10px;">
-              <div style="text-align: right;"><div>${schoolName}</div><div>${examYear}</div></div>
-              <div style="text-align: center;"><div>${subject}</div></div>
-              <div style="text-align: left;"><div>${className}</div><div>${examTime}</div></div>
+              <div style="text-align: right;"><div>${examMeta.school}</div><div>${examMeta.academicYear}</div></div>
+              <div style="text-align: center;"><div>المادة: ${examMeta.subject}</div></div>
+              <div style="text-align: left;"><div>${examMeta.grade}</div><div>${examMeta.time}</div></div>
             </div>
           </div>`;
       case 'grid':
         return `
-          <div class="exam-header" style="margin-bottom: 20px; background: ${selectedHeaderBg};">
-            <h1 style="text-align: center; margin: 0 0 15px 0; color: ${selectedColor}; font-size: ${fontSize + 4}px;">${titleText}</h1>
+          <div class="exam-header" style="margin-bottom: 20px; background: ${headerBgCSS};">
+            <h1 style="text-align: center; margin: 0 0 15px 0; color: ${hColor}; font-size: calc(${examConfig.header.size} + 4px);">${examMeta.examTitle}</h1>
             <div style="display: flex; flex-wrap: wrap; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden;">
-              <div style="width: 50%; padding: 8px; box-sizing: border-box; border-bottom: 1px solid #cbd5e1; border-left: 1px solid #cbd5e1; font-weight: bold;">المدرسة: ${schoolName}</div>
-              <div style="width: 50%; padding: 8px; box-sizing: border-box; border-bottom: 1px solid #cbd5e1; font-weight: bold;">العام: ${examYear}</div>
-              <div style="width: 50%; padding: 8px; box-sizing: border-box; border-left: 1px solid #cbd5e1; font-weight: bold;">المادة: ${subject}</div>
-              <div style="width: 50%; padding: 8px; box-sizing: border-box; font-weight: bold;">الصف والزمن: ${className} - ${examTime}</div>
+              <div style="width: 50%; padding: 8px; box-sizing: border-box; border-bottom: 1px solid #cbd5e1; border-left: 1px solid #cbd5e1; font-weight: bold;">المدرسة: ${examMeta.school}</div>
+              <div style="width: 50%; padding: 8px; box-sizing: border-box; border-bottom: 1px solid #cbd5e1; font-weight: bold;">العام: ${examMeta.academicYear}</div>
+              <div style="width: 50%; padding: 8px; box-sizing: border-box; border-left: 1px solid #cbd5e1; font-weight: bold;">المادة: ${examMeta.subject}</div>
+              <div style="width: 50%; padding: 8px; box-sizing: border-box; font-weight: bold;">الصف والزمن: ${examMeta.grade} - ${examMeta.time}</div>
             </div>
           </div>`;
       case 'split':
         return `
-          <div class="exam-header" style="display: flex; margin-bottom: 25px; border-bottom: 3px solid ${selectedColor}; padding-bottom: 15px; background: ${selectedHeaderBg};">
+          <div class="exam-header" style="display: flex; margin-bottom: 25px; border-bottom: 3px solid ${hColor}; padding-bottom: 15px; background: ${headerBgCSS};">
             <div style="flex: 1; border-left: 2px dashed #94a3b8; padding-right: 15px; display: flex; flex-direction: column; justify-content: center;">
-              <h1 style="margin: 0 0 5px 0; font-size: ${fontSize + 6}px; color: ${selectedColor}; font-weight: 900;">${titleText}</h1>
-              <div style="font-size: 1.1em; font-weight: bold; color: #475569;">${schoolName}</div>
+              <h1 style="margin: 0 0 5px 0; font-size: calc(${examConfig.header.size} + 6px); color: ${hColor}; font-weight: 900;">${examMeta.examTitle}</h1>
+              <div style="font-size: 1.1em; font-weight: bold; color: #475569;">${examMeta.school}</div>
             </div>
             <div style="flex: 1; padding-left: 15px; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; font-weight: bold; line-height: 1.8;">
-              <div>المادة: <span style="color:${selectedColor};">${subject}</span></div>
-              <div>الصف: <span style="color:${selectedColor};">${className}</span></div>
-              <div>الزمن: <span style="color:${selectedColor};">${examTime}</span> | ${examYear}</div>
+              <div>المادة: <span style="color:${hColor};">${examMeta.subject}</span></div>
+              <div>الصف: <span style="color:${hColor};">${examMeta.grade}</span></div>
+              <div>الزمن: <span style="color:${hColor};">${examMeta.time}</span> | ${examMeta.academicYear}</div>
             </div>
           </div>`;
       case 'compact':
         return `
-          <div class="exam-header" style="margin-bottom: 15px; text-align: center; border-bottom: 1px solid #ccc; padding-bottom: 8px; background: ${selectedHeaderBg};">
-            <span style="font-weight: 900; font-size: ${fontSize + 2}px; margin-left: 15px; color: ${selectedColor};">${titleText}</span>
-            <span style="font-weight: bold; margin-left: 10px;">${schoolName}</span>
-            <span style="color: #475569;">(${subject} - ${className} - ${examTime})</span>
+          <div class="exam-header" style="margin-bottom: 15px; text-align: center; border-bottom: 1px solid #ccc; padding-bottom: 8px; background: ${headerBgCSS};">
+            <span style="font-weight: 900; font-size: calc(${examConfig.header.size} + 2px); margin-left: 15px; color: ${hColor};">${examMeta.examTitle}</span>
+            <span style="font-weight: bold; margin-left: 10px;">${examMeta.school}</span>
+            <span style="color: #475569;">(${examMeta.subject} - ${examMeta.grade} - ${examMeta.time})</span>
           </div>`;
       case 'underlined':
         return `
-          <div class="exam-header" style="margin-bottom: 20px; background: ${selectedHeaderBg};">
+          <div class="exam-header" style="margin-bottom: 20px; background: ${headerBgCSS};">
             <div style="width: 100%; text-align: center; margin-bottom: 15px;">
-              <h1 style="margin: 0; display: inline-block; border-bottom: 3px solid ${selectedColor}; padding-bottom: 5px; color: ${selectedColor};">${titleText}</h1>
+              <h1 style="margin: 0; display: inline-block; border-bottom: 3px solid ${hColor}; padding-bottom: 5px; color: ${hColor};">${examMeta.examTitle}</h1>
             </div>
-            <div style="width: 30%; border-bottom: 1.5px dotted #000; padding-bottom: 3px; font-weight: bold; text-align: right;">المدرسة: ${schoolName}</div>
-            <div style="width: 30%; border-bottom: 1.5px dotted #000; padding-bottom: 3px; font-weight: bold; text-align: center;">المادة: ${subject}</div>
-            <div style="width: 30%; border-bottom: 1.5px dotted #000; padding-bottom: 3px; font-weight: bold; text-align: left;">الزمن: ${examTime}</div>
+            <div style="width: 30%; border-bottom: 1.5px dotted #000; padding-bottom: 3px; font-weight: bold; text-align: right;">المدرسة: ${examMeta.school}</div>
+            <div style="width: 30%; border-bottom: 1.5px dotted #000; padding-bottom: 3px; font-weight: bold; text-align: center;">المادة: ${examMeta.subject}</div>
+            <div style="width: 30%; border-bottom: 1.5px dotted #000; padding-bottom: 3px; font-weight: bold; text-align: left;">الزمن: ${examMeta.time}</div>
           </div>`;
       case 'rounded':
         return `
-          <div class="exam-header" style="margin-bottom: 25px; background: ${selectedHeaderBg};">
+          <div class="exam-header" style="margin-bottom: 25px; background: ${headerBgCSS};">
             <div style="width: 100%; text-align: center; background: rgba(241,245,249,0.9); padding: 15px; border-radius: 30px; margin-bottom: 10px;">
-              <h1 style="margin: 0; color: ${selectedColor};">${titleText}</h1>
+              <h1 style="margin: 0; color: ${hColor};">${examMeta.examTitle}</h1>
             </div>
             <div style="display: flex; gap: 10px;">
-              <div style="flex: 1; background: #e2e8f0; padding: 10px; border-radius: 20px; text-align: center; font-weight: bold;">${schoolName}</div>
-              <div style="flex: 1; background: #e2e8f0; padding: 10px; border-radius: 20px; text-align: center; font-weight: bold;">${subject} - ${className}</div>
-              <div style="flex: 1; background: #e2e8f0; padding: 10px; border-radius: 20px; text-align: center; font-weight: bold;">${examTime}</div>
+              <div style="flex: 1; background: #e2e8f0; padding: 10px; border-radius: 20px; text-align: center; font-weight: bold;">${examMeta.school}</div>
+              <div style="flex: 1; background: #e2e8f0; padding: 10px; border-radius: 20px; text-align: center; font-weight: bold;">${examMeta.subject} - ${examMeta.grade}</div>
+              <div style="flex: 1; background: #e2e8f0; padding: 10px; border-radius: 20px; text-align: center; font-weight: bold;">${examMeta.time}</div>
             </div>
           </div>`;
       case 'academic':
         return `
-          <div class="exam-header" style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #000; padding-bottom: 10px; background: ${selectedHeaderBg};">
-            <div style="width: 25%; text-align: center;"><div style="width: 50px; height: 50px; border-radius: 25px; border: 2px solid ${selectedColor}; margin: 0 auto; display:flex; align-items:center; justify-content:center; font-size:10px;">شعار</div></div>
+          <div class="exam-header" style="margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #000; padding-bottom: 10px; background: ${headerBgCSS};">
+            <div style="width: 25%; text-align: center;"><div style="width: 50px; height: 50px; border-radius: 25px; border: 2px solid ${hColor}; margin: 0 auto; display:flex; align-items:center; justify-content:center; font-size:10px;">شعار</div></div>
             <div style="width: 50%; text-align: center;">
-              <h1 style="margin: 0; font-size: ${fontSize + 4}px; font-weight: 900; color: ${selectedColor};">${titleText}</h1>
-              <div style="font-weight: bold;">${schoolName}</div>
+              <h1 style="margin: 0; font-size: calc(${examConfig.header.size} + 4px); font-weight: 900; color: ${hColor};">${examMeta.examTitle}</h1>
+              <div style="font-weight: bold;">${examMeta.school}</div>
             </div>
             <div style="width: 25%; text-align: left; font-weight: bold; font-size: 0.9em;">
-              <div>${examYear}</div><div>${subject}</div><div>${examTime}</div>
+              <div>${examMeta.academicYear}</div><div>${examMeta.subject}</div><div>${examMeta.time}</div>
             </div>
           </div>`;
       case 'bold':
         return `
-          <div class="exam-header" style="margin-bottom: 30px; display: flex; align-items: stretch; background: ${selectedHeaderBg};">
+          <div class="exam-header" style="margin-bottom: 30px; display: flex; align-items: stretch; background: ${headerBgCSS};">
             <div style="flex: 2; background: #0f172a; color: #fff; padding: 20px; border-top-right-radius: 12px; border-bottom-right-radius: 12px;">
-              <h1 style="margin: 0; font-size: ${fontSize + 10}px; line-height: 1.2;">${titleText}</h1>
-              <div style="color: #94a3b8; margin-top: 10px;">${subject} | ${className}</div>
+              <h1 style="margin: 0; font-size: calc(${examConfig.header.size} + 10px); line-height: 1.2;">${examMeta.examTitle}</h1>
+              <div style="color: #94a3b8; margin-top: 10px;">${examMeta.subject} | ${examMeta.grade}</div>
             </div>
             <div style="flex: 1; padding: 20px; font-weight: bold; color: #334155; text-align: left;">
-              <div style="margin-bottom: 8px;">${schoolName}</div><div style="margin-bottom: 8px;">${examYear}</div><div>${examTime}</div>
+              <div style="margin-bottom: 8px;">${examMeta.school}</div><div style="margin-bottom: 8px;">${examMeta.academicYear}</div><div>${examMeta.time}</div>
             </div>
           </div>`;
       default:
         return `
-          <div class="exam-header" style="background: ${selectedHeaderBg}; border-bottom: 3px solid ${selectedColor}; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; margin-bottom: 18px;">
-            <div style="width: 30%; text-align: right; font-weight: 700; color: ${selectedColor};"><div>${schoolName}</div></div>
+          <div class="exam-header classic-layout" style="background: ${headerBgCSS}; border-bottom: 3px solid ${hColor}; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; margin-bottom: 18px;">
+            <div style="width: 30%; text-align: right; font-weight: 700; color: ${hColor};"><div>${examMeta.school}</div></div>
             <div style="text-align: center; width: 40%;">
-              <h1 style="margin: 0 0 4px 0; font-size: ${fontSize + 3}px; font-weight: 900; color: ${selectedColor};">${titleText}</h1>
-              <div style="font-size: ${fontSize - 1.5}px; font-weight: 700; color: ${selectedColor}; opacity: 0.85;">${examYear}</div>
+              <h1 style="margin: 0 0 4px 0; font-size: calc(${examConfig.header.size} + 3px); font-weight: 900; color: ${hColor};">${examMeta.examTitle}</h1>
+              <div style="font-size: calc(${examConfig.header.size} - 1.5px); font-weight: 700; color: ${hColor}; opacity: 0.85;">${examMeta.academicYear}</div>
             </div>
-            <div style="width: 30%; text-align: left; font-weight: 700; color: ${selectedColor};">
-              <div>${className}</div><div>${subject}</div><div>${examTime}</div>
+            <div style="width: 30%; text-align: left; font-weight: 700; color: ${hColor};">
+              <div>${examMeta.grade}</div><div>${examMeta.subject}</div><div>${examMeta.time}</div>
             </div>
           </div>`;
     }
+  };
+
+  const generateFooterHTML = () => {
+    return `
+      <div class="exam-footer" style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; font-weight: 700; border-top: 1.5px dashed rgba(203, 213, 225, 0.8); margin-top: 30px;">
+        <div style="width: 35%; text-align: right;">${examMeta.teacherName ? `مدرس المادة: ${examMeta.teacherName}` : ''}</div>
+        <div style="width: 30%; text-align: center; font-weight: 900;">${examMeta.closingText}</div>
+        <div style="width: 35%; text-align: left;">انتهت الأسئلة</div>
+      </div>`;
   };
 
   const generateFullHTML = () => {
@@ -587,66 +674,61 @@ export default function MathExamMinisterialScreen() {
       });
     });
 
-    const fontImportUrl = `https://fonts.googleapis.com/css2?family=${selectedFont.replace(/ /g, '+')}:wght@400;700;900&display=swap`;
-    const frameCss = FRAME_TYPES.find(f => f.id === selectedFrame)?.css || FRAME_TYPES[0].css;
+    const fontImportUrl = `https://fonts.googleapis.com/css2?family=${examConfig.header.font.replace(/ /g, '+')}:wght@400;700;900&display=swap`;
+    
+    let borderCSS = '';
+    switch (examConfig.pageBorder.style) {
+      case 'double': borderCSS = `border: 3px double ${examConfig.pageBorder.color}; padding: 12mm;`; break;
+      case 'solid': borderCSS = `border: ${examConfig.pageBorder.width} solid ${examConfig.pageBorder.color}; padding: 12mm;`; break;
+      case 'dashed': borderCSS = `border: ${examConfig.pageBorder.width} dashed ${examConfig.pageBorder.color}; padding: 12mm;`; break;
+      case 'dotted': borderCSS = `border: ${examConfig.pageBorder.width} dotted ${examConfig.pageBorder.color}; padding: 12mm;`; break;
+      case 'groove': borderCSS = `border: ${examConfig.pageBorder.width} groove ${examConfig.pageBorder.color}; padding: 12mm;`; break;
+      case 'ridge': borderCSS = `border: ${examConfig.pageBorder.width} ridge ${examConfig.pageBorder.color}; padding: 12mm;`; break;
+      default: borderCSS = `border: none; padding: 10mm;`;
+    }
 
     return `
-      <html>
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
         <head>
           <meta charset="utf-8">
           <style>
             @import url('${fontImportUrl}');
-            @page { size: A4 portrait; margin: 12mm; }
+            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&family=Tajawal:wght@400;700;900&display=swap');
+            @page { size: A4 portrait; margin: 8mm; }
             body { 
-              font-family: '${selectedFont}', Tahoma, sans-serif; 
-              font-size: ${fontSize}px; 
-              direction: rtl; 
-              padding: 5px; 
-              color: ${selectedColor}; 
-              background-color: #fff; 
-              line-height: 1.6; 
+              font-family: '${examConfig.header.font}', sans-serif; 
+              color: ${examConfig.header.color}; 
+              margin: 0; padding: 0; background-color: #fff; direction: rtl;
+              -webkit-print-color-adjust: exact;
             }
-            .page-sheet {
-              ${frameCss}
-              min-height: 255mm;
-              display: flex;
-              flex-direction: column;
-              justify-content: space-between;
-              background-color: #fff;
-              box-sizing: border-box;
-              page-break-after: always;
+            .page-container {
+              ${borderCSS}
+              min-height: 275mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; break-after: page;
             }
-            .instructions { font-weight: 900; text-decoration: underline; margin-bottom: 20px; font-size: ${fontSize}px; }
-            .question-title { font-weight: 900; font-size: ${fontSize + 1}px; margin-top: 15px; margin-bottom: 6px; text-align: right; }
-            .branch-row { margin-bottom: 16px; margin-right: 15px; text-align: right; display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-start; direction: rtl; }
-            .branch-label { font-weight: 900; margin-left: 8px; color: ${selectedColor}; }
-            .ministerial-footer { margin-top: 30px; text-align: left; font-weight: bold; font-size: ${fontSize - 1}px; }
+            .content-section { flex: 1; }
+            .instructions { 
+              font-weight: 900; text-decoration: underline; margin-bottom: 18px; font-size: ${examConfig.questions.size}; 
+              background: rgba(224, 242, 254, 0.8); padding: 8px 12px; border-radius: 4px; border-right: 5px solid ${examConfig.header.color};
+            }
+            .question-title { 
+              font-weight: 900; font-size: calc(${examConfig.questions.size} + 1px); margin-top: 15px; margin-bottom: 6px; text-align: right; page-break-inside: avoid; break-inside: avoid;
+            }
+            .branch-row { 
+              margin-bottom: 14px; margin-right: 15px; text-align: right; display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-start; direction: rtl;
+              font-size: ${examConfig.questions.size}; font-family: '${examConfig.questions.font}', sans-serif; page-break-inside: avoid; break-inside: avoid;
+            }
+            .branch-label { font-weight: 900; margin-left: 8px; color: ${examConfig.header.color}; }
           </style>
         </head>
         <body>
-          <div class="page-sheet">
-            <div>
-              ${renderHeaderHTML(false)}
-              <div class="instructions">${instructions}</div>
-              <div style="margin-top: 10px;">
-                ${questionsHTML}
-              </div>
+          <div class="page-container">
+            <div class="content-section">
+              ${generateHeaderHTML()}
+              <div class="instructions">${examNote}</div>
+              <div style="margin-top: 10px;">${questionsHTML}</div>
             </div>
-            <div class="ministerial-footer">
-               ${teacherName}
-            </div>
-          </div>
-
-          <div class="page-sheet">
-            <div>
-              ${renderHeaderHTML(true)}
-              <div style="margin-top: 30px; text-align: center; color: #666; font-style: italic;">
-                [ مساحة إضافية للحل أو الأسئلة الإضافية ]
-              </div>
-            </div>
-            <div class="ministerial-footer">
-               ${teacherName}
-            </div>
+            ${generateFooterHTML()}
           </div>
           ${getWatermarkHTML()}
         </body>
@@ -674,23 +756,6 @@ export default function MathExamMinisterialScreen() {
       Alert.alert('خطأ', 'فشلت عملية الطباعة');
     } finally {
       setIsPrinting(false);
-    }
-  };
-
-  const handleExportPDF = async () => {
-    if (questions.length === 0) return Alert.alert('تنبيه', 'أضف سؤالاً واحداً على الأقل للورقة أولاً');
-
-    const canProceed = await handleExportAttempt();
-    if (!canProceed) return;
-
-    setIsExporting(true);
-    try {
-      const { uri } = await Print.printToFileAsync({ html: generateFullHTML() });
-      await shareAsync(uri);
-    } catch (error) {
-      Alert.alert('خطأ', 'فشل تصدير الـ PDF');
-    } finally {
-      setIsExporting(false);
     }
   };
 
@@ -730,84 +795,116 @@ export default function MathExamMinisterialScreen() {
               <Text style={styles.sectionHeader}>أولاً: بيانات الترويسة والذيل الوزاري</Text>
               
               <Text style={styles.label}>اسم المدرسة (الجهة اليمنى للراس):</Text>
-              <TextInput style={styles.input} value={schoolName} onChangeText={setSchoolName} textAlign="right" />
+              <TextInput style={styles.input} value={examMeta.school} onChangeText={(v) => setExamMeta(p => ({...p, school: v}))} textAlign="right" />
               
               <Text style={styles.label}>عنوان الامتحان (وسط الراس):</Text>
-              <TextInput style={styles.input} value={examTitle} onChangeText={setExamTitle} textAlign="right" />
+              <TextInput style={styles.input} value={examMeta.examTitle} onChangeText={(v) => setExamMeta(p => ({...p, examTitle: v}))} textAlign="right" />
               
               <Text style={styles.label}>السنة الدراسية (تحت العنوان):</Text>
-              <TextInput style={styles.input} value={examYear} onChangeText={setExamYear} textAlign="right" />
+              <TextInput style={styles.input} value={examMeta.academicYear} onChangeText={(v) => setExamMeta(p => ({...p, academicYear: v}))} textAlign="right" />
               
               <Text style={styles.label}>الصف (الجهة اليسرى للراس):</Text>
-              <TextInput style={styles.input} value={className} onChangeText={setClassName} textAlign="right" />
+              <TextInput style={styles.input} value={examMeta.grade} onChangeText={(v) => setExamMeta(p => ({...p, grade: v}))} textAlign="right" />
               
               <Text style={styles.label}>المادة (الجهة اليسرى للراس):</Text>
-              <TextInput style={styles.input} value={subject} onChangeText={setSubject} textAlign="right" />
+              <TextInput style={styles.input} value={examMeta.subject} onChangeText={(v) => setExamMeta(p => ({...p, subject: v}))} textAlign="right" />
               
               <Text style={styles.label}>الوقت (الجهة اليسرى للراس):</Text>
-              <TextInput style={styles.input} value={examTime} onChangeText={setExamTime} textAlign="right" />
+              <TextInput style={styles.input} value={examMeta.time} onChangeText={(v) => setExamMeta(p => ({...p, time: v}))} textAlign="right" />
 
-              <Text style={styles.label}>اسم المدرس (يظهر في الذيل على اليسار):</Text>
-              <TextInput style={styles.input} value={teacherName} onChangeText={setTeacherName} textAlign="right" />
+              <Text style={styles.label}>اسم المدرس (يظهر في الذيل على اليمين):</Text>
+              <TextInput style={styles.input} value={examMeta.teacherName} onChangeText={(v) => setExamMeta(p => ({...p, teacherName: v}))} textAlign="right" />
 
-              <Text style={styles.label}>الملاحظات العامة:</Text>
-              <TextInput style={styles.input} value={instructions} onChangeText={setInstructions} textAlign="right" />
+              <Text style={styles.label}>عبارة الختام في الذيل (وسط):</Text>
+              <TextInput style={styles.input} value={examMeta.closingText} onChangeText={(v) => setExamMeta(p => ({...p, closingText: v}))} textAlign="right" />
+
+              <Text style={styles.label}>الملاحظات العامة (ملاحظة الأسئلة):</Text>
+              <TextInput style={styles.input} value={examNote} onChangeText={setExamNote} textAlign="right" />
 
               <View style={styles.divider} />
 
               <Text style={styles.sectionHeader}>ثانياً: خيارات التصميم والإطارات والتظليل والقوالب</Text>
 
               <ModalDropdown 
-                label="إطار الصفحة الخارجي (5 أنواع):" 
-                value={selectedFrame} 
-                options={FRAME_TYPES.map(f => ({ label: f.label, value: f.id }))} 
-                isOpen={activeDropdown === 'frame'} 
-                onToggle={() => toggleDropdown('frame')} 
-                onSelect={(v) => setSelectedFrame(v)} 
+                label="شكل إطار الصفحة الخارجي:" 
+                value={examConfig.pageBorder.style} 
+                options={borderStylesOptions} 
+                isOpen={activeDropdown === 'bStyle'} 
+                onToggle={() => toggleDropdown('bStyle')} 
+                onSelect={(v) => setExamConfig(p => ({...p, pageBorder: {...p.pageBorder, style: v}}))} 
               />
 
               <ModalDropdown 
-                label="لون تظليل خلفية الراس (7 ألوان):" 
-                value={selectedHeaderBg} 
-                options={HEADER_BG_COLORS.map(c => ({ label: c.label, value: c.value }))} 
-                isOpen={activeDropdown === 'headerBg'} 
-                onToggle={() => toggleDropdown('headerBg')} 
-                onSelect={(v) => setSelectedHeaderBg(v)} 
+                label="سُمك الإطار:" 
+                value={examConfig.pageBorder.width} 
+                options={borderWidthOptions} 
+                isOpen={activeDropdown === 'bWidth'} 
+                onToggle={() => toggleDropdown('bWidth')} 
+                onSelect={(v) => setExamConfig(p => ({...p, pageBorder: {...p.pageBorder, width: v}}))} 
+              />
+
+              <ModalDropdown 
+                label="لون إطار الصفحة:" 
+                value={examConfig.pageBorder.color} 
+                options={COLORS} 
+                isOpen={activeDropdown === 'bColor'} 
+                onToggle={() => toggleDropdown('bColor')} 
+                onSelect={(v) => setExamConfig(p => ({...p, pageBorder: {...p.pageBorder, color: v}}))} 
+              />
+
+              <ModalDropdown 
+                label="تظليل الرأس:" 
+                value={examConfig.pdfHeaderShading} 
+                options={headerShadingOptions} 
+                isOpen={activeDropdown === 'hShading'} 
+                onToggle={() => toggleDropdown('hShading')} 
+                onSelect={(v) => setExamConfig(p => ({...p, pdfHeaderShading: v}))} 
               />
 
               <ModalDropdown 
                 label="قالب الراس والتذيل (15 قالب هيكلي عالمي):" 
-                value={selectedTemplate} 
+                value={examConfig.layoutTemplate} 
                 options={layoutTemplates.map(t => ({ label: `${t.label} - ${t.desc}`, value: t.id }))} 
                 isOpen={activeDropdown === 'layout'} 
                 onToggle={() => toggleDropdown('layout')} 
-                onSelect={(v) => setSelectedTemplate(v)} 
+                onSelect={(v) => setExamConfig(p => ({...p, layoutTemplate: v}))} 
               />
 
               <ModalDropdown 
-                label="نوع الخط (8 خطوط عربية متقدمة):" 
-                value={selectedFont} 
+                label="نوع الخط للرأس:" 
+                value={examConfig.header.font} 
                 options={FONTS} 
-                isOpen={activeDropdown === 'font'} 
-                onToggle={() => toggleDropdown('font')} 
-                onSelect={(v) => setSelectedFont(v)} 
+                isOpen={activeDropdown === 'hFont'} 
+                onToggle={() => toggleDropdown('hFont')} 
+                onSelect={(v) => setExamConfig(p => ({...p, header: {...p.header, font: v}}))} 
               />
 
               <ModalDropdown 
-                label="اللون الأساسي للنص:" 
-                value={selectedColor} 
-                options={COLORS} 
-                isOpen={activeDropdown === 'color'} 
-                onToggle={() => toggleDropdown('color')} 
-                onSelect={(v) => setSelectedColor(v)} 
+                label="حجم خط الرأس:" 
+                value={examConfig.header.size} 
+                options={sizeOptions} 
+                isOpen={activeDropdown === 'hSize'} 
+                onToggle={() => toggleDropdown('hSize')} 
+                onSelect={(v) => setExamConfig(p => ({...p, header: {...p.header, size: v}}))} 
               />
 
-              <Text style={styles.label}>حجم الخط الأساسي ({fontSize}px):</Text>
-              <View style={styles.sizeControl}>
-                 <TouchableOpacity style={styles.sizeBtn} onPress={() => setFontSize(f => Math.min(f + 1, 26))}><Text style={styles.sizeBtnText}>+</Text></TouchableOpacity>
-                 <Text style={styles.sizeText}>{fontSize}</Text>
-                 <TouchableOpacity style={styles.sizeBtn} onPress={() => setFontSize(f => Math.max(f - 1, 12))}><Text style={styles.sizeBtnText}>-</Text></TouchableOpacity>
-              </View>
+              <ModalDropdown 
+                label="اللون الأساسي للنص والإطار:" 
+                value={examConfig.header.color} 
+                options={COLORS} 
+                isOpen={activeDropdown === 'hColor'} 
+                onToggle={() => toggleDropdown('hColor')} 
+                onSelect={(v) => setExamConfig(p => ({...p, header: {...p.header, color: v}}))} 
+              />
+
+              <ModalDropdown 
+                label="حجم خط الأسئلة:" 
+                value={examConfig.questions.size} 
+                options={sizeOptions} 
+                isOpen={activeDropdown === 'qSize'} 
+                onToggle={() => toggleDropdown('qSize')} 
+                onSelect={(v) => setExamConfig(p => ({...p, questions: {...p.questions, size: v}}))} 
+              />
             </View>
           )}
 
@@ -817,7 +914,7 @@ export default function MathExamMinisterialScreen() {
               <View style={{flexDirection: 'row-reverse', gap: 10, marginBottom: 14}}>
                 <View style={{flex: 1}}>
                   <Text style={styles.label}>رقم السؤال:</Text>
-                  <TextInput style={styles.input} value={currentQuestionNum} onChangeText={setCurrentQuestionNum} placeholder="س1 أو 1" textAlign="right" />
+                  <TextInput style={styles.input} value={currentQuestionNum} onChangeText={setCurrentQuestionNum} placeholder="السؤال الأول" textAlign="right" />
                 </View>
                 <View style={{flex: 1}}>
                   <Text style={styles.label}>رمز الفرع:</Text>
@@ -1023,20 +1120,11 @@ export default function MathExamMinisterialScreen() {
             
             <View style={styles.dockDivider} />
 
-            <TouchableOpacity onPress={handlePrint} style={styles.dockBtn} disabled={isPrinting || isExporting} activeOpacity={0.7}>
+            <TouchableOpacity onPress={handlePrint} style={styles.dockBtn} disabled={isPrinting} activeOpacity={0.7}>
               <View style={[styles.dockIconBg, { backgroundColor: 'rgba(75, 83, 32, 0.1)' }]}>
                 {isPrinting ? <ActivityIndicator color="#4B5320" size="small" /> : <Ionicons name="print" size={20} color="#4B5320" />}
               </View>
               <Text style={[styles.dockBtnText, { color: '#4B5320' }]} numberOfLines={1}>طباعة</Text>
-            </TouchableOpacity>
-
-            <View style={styles.dockDivider} />
-
-            <TouchableOpacity onPress={handleExportPDF} style={styles.dockBtn} disabled={isExporting || isPrinting} activeOpacity={0.7}>
-              <View style={[styles.dockIconBg, { backgroundColor: 'rgba(75, 83, 32, 0.1)' }]}>
-                {isExporting ? <ActivityIndicator color="#4B5320" size="small" /> : <Ionicons name="share-outline" size={20} color="#4B5320" />}
-              </View>
-              <Text style={[styles.dockBtnText, { color: '#4B5320' }]} numberOfLines={1}>تصدير PDF</Text>
             </TouchableOpacity>
           </BlurView>
         </View>
@@ -1045,61 +1133,6 @@ export default function MathExamMinisterialScreen() {
     </KeyboardAvoidingView>
   );
 }
-
-const ModalDropdown = React.memo(({ label, value, options, onSelect, isOpen, onToggle }: { label?: string; value: string; options: { label: string; value: string }[]; onSelect: (v: string) => void; isOpen: boolean; onToggle: () => void }) => {
-  const selectedOpt = options.find(o => o.value === value) || options[0];
-
-  return (
-    <View style={styles.dropdownWrapperNew}>
-      {label ? <Text style={styles.subLabel}>{label}</Text> : null}
-      
-      <TouchableOpacity activeOpacity={0.85} onPress={onToggle} style={styles.dropdownHeaderNew}>
-        <View style={styles.dropdownHeaderInner}>
-          <Text style={styles.dropdownHeaderText} numberOfLines={1}>
-            {selectedOpt ? selectedOpt.label : 'اختر...'}
-          </Text>
-        </View>
-        <Ionicons name="chevron-down" size={16} color="#4B5320" />
-      </TouchableOpacity>
-
-      <Modal visible={isOpen} transparent={true} animationType="fade" onRequestClose={onToggle}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onToggle}>
-          <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{label || 'اختر الخيار'}</Text>
-              <TouchableOpacity onPress={onToggle} style={styles.closeBtn}>
-                <Ionicons name="close" size={22} color="#6E7A41" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={{ maxHeight: 350 }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
-              {options.map((opt) => {
-                const isSelected = opt.value === value;
-                return (
-                  <TouchableOpacity
-                    key={opt.value}
-                    style={[styles.dropdownItem, isSelected ? styles.dropdownItemSelected : null]}
-                    onPress={() => {
-                      Haptics.selectionAsync();
-                      onSelect(opt.value);
-                      onToggle();
-                    }}
-                  >
-                    <View style={styles.dropdownHeaderInner}>
-                      <Text style={[styles.dropdownItemText, isSelected ? styles.dropdownItemTextSelected : null]}>
-                        {opt.label}
-                      </Text>
-                    </View>
-                    {isSelected ? <Ionicons name="checkmark-circle" size={20} color="#4B5320" /> : null}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </View>
-  );
-});
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
@@ -1127,21 +1160,10 @@ const styles = StyleSheet.create({
   dropdownHeaderInner: { flexDirection: 'row-reverse', alignItems: 'center', flex: 1, gap: 10 },
   dropdownHeaderText: { color: '#3f4a2e', fontSize: 13, fontWeight: '700', flex: 1, textAlign: 'right' },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.4)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  modalContent: { width: '100%', maxWidth: 380, backgroundColor: '#ffffff', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.1)', overflow: 'hidden', padding: 20, elevation: 15 },
-  modalHeader: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(75, 83, 32, 0.1)' },
-  modalTitle: { color: '#3f4a2e', fontSize: 18, fontWeight: '900' },
-  closeBtn: { padding: 6, backgroundColor: 'rgba(75, 83, 32, 0.08)', borderRadius: 12 },
-
-  dropdownItem: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, borderRadius: 12, marginBottom: 4 },
+  dropdownItem: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, marginBottom: 4 },
   dropdownItemSelected: { backgroundColor: 'rgba(75, 83, 32, 0.1)' },
   dropdownItemText: { color: '#3f4a2e', fontSize: 14, fontWeight: '700', flex: 1, textAlign: 'right' },
   dropdownItemTextSelected: { color: '#4B5320', fontWeight: '900' },
-
-  sizeControl: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'flex-start', gap: 15, marginBottom: 10 },
-  sizeBtn: { backgroundColor: 'rgba(75, 83, 32, 0.1)', width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.2)' },
-  sizeBtnText: { fontSize: 18, fontWeight: 'bold', color: '#4B5320' },
-  sizeText: { fontSize: 16, fontWeight: 'bold', color: '#3f4a2e', minWidth: 30, textAlign: 'center' },
 
   toolsScroll: { flexDirection: 'row-reverse', gap: 8, paddingBottom: 12 },
   toolBtn: { backgroundColor: '#4B5320', paddingHorizontal: 12, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
@@ -1150,7 +1172,6 @@ const styles = StyleSheet.create({
   dropdownWrapper: { flexBasis: '48%', flexGrow: 1 },
   dropdownHeader: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)', borderRadius: 12, paddingHorizontal: 10, height: 38 },
   dropdownHeaderActive: { backgroundColor: '#4B5320', borderColor: '#4B5320' },
-  dropdownHeaderText: { fontSize: 12, fontWeight: 'bold', color: '#3f4a2e' },
   dropdownHeaderTextActive: { color: '#ffffff' },
   activeDropdownContent: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 6, backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)', borderRadius: 12, padding: 12, marginBottom: 12 },
   symBtn: { paddingHorizontal: 10, height: 36, backgroundColor: '#f8fafc', borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)', borderRadius: 8, justifyContent: 'center', alignItems: 'center', minWidth: 40 },

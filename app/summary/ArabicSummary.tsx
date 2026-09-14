@@ -4,8 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import { useRouter } from 'expo-router';
-import { shareAsync } from 'expo-sharing';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -21,8 +20,8 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { useSubscription } from '../../context/SubscriptionContext';
 import { setExamStore } from '../../utils/examStore';
-import { useSubscription } from '../context/SubscriptionContext';
 
 // --- خيارات التنسيق والخطوط ---
 const arabicFonts = [
@@ -185,7 +184,6 @@ export default function ArabicSummary() {
   const router = useRouter();
   const { handleExportAttempt, getWatermarkHTML } = useSubscription();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
 
   const [meta, setMeta] = useState({ 
@@ -214,11 +212,11 @@ export default function ArabicSummary() {
 
     headerTemplate: 'classic',
 
-    font: 'Cairo',               
-    size: '16px',                  
+    font: 'Cairo',              
+    size: '16px',                     
     textColor: '#1a2e05',        
     textAlign: 'right',          
-    textWeight: '600',           
+    textWeight: '600',          
 
     subtitleSize: '19px', 
     subtitleShape: 'sidebar', 
@@ -662,22 +660,6 @@ export default function ArabicSummary() {
     }
   };
 
-  const handleExport = async () => { 
-    Keyboard.dismiss();
-    const canExport = await handleExportAttempt();
-    if (!canExport) return;
-
-    setIsGenerating(true); 
-    try { 
-      const { uri } = await Print.printToFileAsync({ html: generateHTML(), width: 595, height: 842 }); 
-      await shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' }); 
-    } catch { 
-      Alert.alert('خطأ', 'فشل التصدير'); 
-    } finally { 
-      setIsGenerating(false); 
-    } 
-  };
-
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
@@ -856,8 +838,8 @@ export default function ArabicSummary() {
 
         </ScrollView>
 
-        {/* الشريط العائم */}
-        <View style={styles.floatingDockContainer}>
+        {/* الشريط العائم (معاينة وطباعة فقط) */}
+        <View style={styles. floatingDockContainer}>
           <View style={styles.floatingDock}>
             <TouchableOpacity onPress={handlePreview} style={styles.dockBtn} activeOpacity={0.7}>
               <View style={[styles.dockIconBg, { backgroundColor: 'rgba(63, 98, 18, 0.15)' }]}>
@@ -868,20 +850,11 @@ export default function ArabicSummary() {
             
             <View style={styles.dockDivider} />
 
-            <TouchableOpacity onPress={handlePrint} style={styles.dockBtn} disabled={isPrinting || isGenerating} activeOpacity={0.7}>
+            <TouchableOpacity onPress={handlePrint} style={styles.dockBtn} disabled={isPrinting} activeOpacity={0.7}>
               <View style={[styles.dockIconBg, { backgroundColor: 'rgba(63, 98, 18, 0.15)' }]}>
                 {isPrinting ? <ActivityIndicator color="#3f6212" size="small" /> : <Ionicons name="print" size={20} color="#3f6212" />}
               </View>
-              <Text style={[styles.dockBtnText, { color: '#3f6212' }]} numberOfLines={1}>طباعة</Text>
-            </TouchableOpacity>
-
-            <View style={styles.dockDivider} />
-
-            <TouchableOpacity onPress={handleExport} style={styles.dockBtn} disabled={isGenerating || isPrinting} activeOpacity={0.7}>
-              <View style={[styles.dockIconBg, { backgroundColor: 'rgba(63, 98, 18, 0.15)' }]}>
-                {isGenerating ? <ActivityIndicator color="#3f6212" size="small" /> : <Ionicons name="share-outline" size={20} color="#3f6212" />}
-              </View>
-              <Text style={[styles.dockBtnText, { color: '#3f6212' }]} numberOfLines={1}>تصدير PDF</Text>
+              <Text style={[styles.dockBtnText, { color: '#3f6212' }]} numberOfLines={1}>طباعة مباشرة</Text>
             </TouchableOpacity>
           </View>
         </View>

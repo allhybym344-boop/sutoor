@@ -5,7 +5,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import { useRouter } from 'expo-router';
-import { shareAsync } from 'expo-sharing';
 import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -23,8 +22,8 @@ import {
   View
 } from 'react-native';
 
+import { useSubscription } from '../../context/SubscriptionContext';
 import { setExamStore } from '../../utils/examStore';
-import { useSubscription } from '../context/SubscriptionContext';
 
 const arabicLetters = ['أ', 'ب', 'ج', 'د', 'هـ', 'و', 'ز', 'ح', 'ط', 'ي'];
 
@@ -47,7 +46,7 @@ const sizeOptions = [
   { label: 'أساسي (14px)', value: '14px' },
   { label: 'متوسط (15px)', value: '15px' },
   { label: 'كبير (17px)', value: '17px' },
-  { label: 'كبير جداً (20px)', value: '20px' },
+  { label: 'كبير جداً (22px)', value: '22px' },
   { label: 'ضخم (24px)', value: '24px' }
 ];
 
@@ -473,10 +472,13 @@ const QuestionItem = React.memo(({
   onUpdateFillSentence,
   onDeleteFillSentence,
   onDeleteQuestion, 
-  subStyle,
+  globalSubStyle,
+  globalFontSize,
   numStyle,
-  onOpenTypeModal,
-  activeTypeDropdown
+  activeDropdown,
+  onToggleDropdown,
+  activeTypeDropdown,
+  onOpenTypeModal
 }) => {
   
   const pickImageForQuestion = async () => {
@@ -535,6 +537,7 @@ const QuestionItem = React.memo(({
   };
 
   const formattedQNum = formatNum(index + 1, numStyle);
+  const currentSubStyle = item.subStyle || globalSubStyle;
 
   return (
     <View style={styles.worldClassQuestionCard}>
@@ -557,6 +560,56 @@ const QuestionItem = React.memo(({
         <TouchableOpacity onPress={() => onDeleteQuestion(item.id)} style={styles.worldDeleteBtn}>
           <Ionicons name="trash-bin-outline" size={17} color="#e11d48" />
         </TouchableOpacity>
+      </View>
+
+      {/* تنسيقات خاصة بهذا السؤال فقط */}
+      <View style={styles.questionCustomStyleBox}>
+        <Text style={styles.customStyleBoxTitle}>🎨 تنسيقات وتوزيع الدرجة لهذا السؤال:</Text>
+        <View style={styles.inputRow}>
+          <TextInput
+            style={[styles.inputField, { flex: 1, marginBottom: 0 }]}
+            value={item.score || ''}
+            onChangeText={(text) => onUpdateField(item.id, 'score', text)}
+            placeholder="درجة السؤال (مثال: 20 درجة)"
+            placeholderTextColor="#8c9a63"
+          />
+        </View>
+        <View style={[styles.inputRow, { marginTop: 8 }]}>
+          <ModalDropdown 
+            label="خط السؤال" 
+            value={item.font || 'Simplified Arabic'} 
+            options={arabicFonts} 
+            isOpen={activeDropdown === `q_${item.id}_font`} 
+            onToggle={() => onToggleDropdown(`q_${item.id}_font`)} 
+            onSelect={(v) => onUpdateField(item.id, 'font', v)} 
+          />
+          <ModalDropdown 
+            label="ترقيم الفروع الداخلية" 
+            value={currentSubStyle} 
+            options={subStyleOptions} 
+            isOpen={activeDropdown === `q_${item.id}_subStyle`} 
+            onToggle={() => onToggleDropdown(`q_${item.id}_subStyle`)} 
+            onSelect={(v) => onUpdateField(item.id, 'subStyle', v)} 
+          />
+        </View>
+        <View style={styles.inputRow}>
+          <ModalDropdown 
+            label="لون السؤال" 
+            value={item.color || '#0f172a'} 
+            options={colorOptions} 
+            isOpen={activeDropdown === `q_${item.id}_color`} 
+            onToggle={() => onToggleDropdown(`q_${item.id}_color`)} 
+            onSelect={(v) => onUpdateField(item.id, 'color', v)} 
+          />
+          <ModalDropdown 
+            label="تظليل خلفية السؤال" 
+            value={item.shading || 'none'} 
+            options={questionShadingOptions} 
+            isOpen={activeDropdown === `q_${item.id}_shading`} 
+            onToggle={() => onToggleDropdown(`q_${item.id}_shading`)} 
+            onSelect={(v) => onUpdateField(item.id, 'shading', v)} 
+          />
+        </View>
       </View>
 
       <TouchableOpacity style={styles.worldOcrBtn} onPress={scanAndExtractText} activeOpacity={0.85}>
@@ -720,7 +773,7 @@ const QuestionItem = React.memo(({
             </TouchableOpacity>
           </View>
           {item.subQuestions ? item.subQuestions.map((sub, sIdx) => {
-            const label = getSubLabelText(sIdx, subStyle, numStyle);
+            const label = getSubLabelText(sIdx, currentSubStyle, numStyle);
             return (
               <View key={sub.id} style={styles.subItemRowAr}>
                 <LinearGradient colors={['rgba(75, 83, 32, 0.15)', 'rgba(75, 83, 32, 0.05)']} style={styles.subLetterBadge}>
@@ -751,13 +804,13 @@ export default function ArabicExam() {
   const { handleExportAttempt, getWatermarkHTML } = useSubscription();
   
   const [examMeta, setExamMeta] = useState({
-    school: 'مدرسة المستقبل الثانوية الأهلية',
-    examTitle: 'امتحان نهاية الفصل الدراسي الثاني',
+    school: 'مدرسة السطور الثانوية الأهلية',
+    examTitle: 'امتحان نهاية السنة  ',
     academicYear: 'العام الدراسي 2025 - 2026 م',
-    grade: 'الصف الثالث الثانوي (العلمي)',
+    grade: 'الصف الثالث المتوسط ',
     subject: 'مادة اللغة العربية',
     time: 'الزمن: ساعتان فقط',
-    teacherName: 'أ. محمد عبد الله',
+    teacherName: 'مصطفى خالد ',
     closingText: 'مع تمنياتنا للجميع بالتوفيق والنجاح'
   });
 
@@ -781,7 +834,6 @@ export default function ArabicExam() {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeTypeDropdown, setActiveTypeDropdown] = useState(null);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isGenerating] = useState(false);
 
@@ -802,6 +854,11 @@ export default function ArabicExam() {
       id: '1', 
       type: 'text',
       text: 'ما هو تعريف البلاغة وفي أي علم تُدرس محسّناتها البديعية؟', 
+      score: '20 درجة',
+      font: 'Simplified Arabic',
+      color: '#0f172a',
+      shading: 'none',
+      subStyle: 'letters',
       subQuestions: [],
       imageBase64: null,
       imageSize: '50%',
@@ -878,7 +935,27 @@ export default function ArabicExam() {
 
   const handleAddQuestion = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setQuestions(prev => [...prev, { id: Date.now().toString(), type: 'text', text: '', rows: 3, cols: 3, tableData: [['','',''],['','',''],['','','']], fillSentences: [], subQuestions: [], imageBase64: null, imageSize: '50%', imageAlign: 'center' }]);
+    setQuestions(prev => [
+      ...prev, 
+      { 
+        id: Date.now().toString(), 
+        type: 'text', 
+        text: '', 
+        score: '20 درجة',
+        font: examConfig.questions.font,
+        color: examConfig.questions.color,
+        shading: examConfig.questions.shading,
+        subStyle: examConfig.questions.subStyle,
+        rows: 3, 
+        cols: 3, 
+        tableData: [['','',''],['','',''],['','','']], 
+        fillSentences: [], 
+        subQuestions: [], 
+        imageBase64: null, 
+        imageSize: '50%', 
+        imageAlign: 'center' 
+      }
+    ]);
   };
 
   const getBackgroundColor = (type) => {
@@ -892,7 +969,7 @@ export default function ArabicExam() {
   const generateExamHTML = () => {
     const lineSpacing = examConfig.pdfLineSpacing || '1.65';
     const numStyle = examConfig.questions.numStyle || 'eastern';
-    const subStyle = examConfig.questions.subStyle || 'letters';
+    const globalSubStyle = examConfig.questions.subStyle || 'letters';
     const tpl = examConfig.layoutTemplate || 'classic';
     const { header: gHeader, margin: gMargin, border: gBorder } = examConfig.glassEffects;
 
@@ -956,10 +1033,8 @@ export default function ArabicExam() {
       headerBgCSS = '#ffffff';
     }
 
-    const qShadingType = examConfig.questions.shading || 'none';
-    const qItemBgCSS = getBackgroundColor(qShadingType);
     const hColor = examConfig.header.color;
-    const qColor = examConfig.questions.color;
+    const qSize = examConfig.questions.size;
     const tableSize = examConfig.table.size;
     const tableColor = examConfig.table.color;
     let tableBgCSS = getBackgroundColor(examConfig.table.shading);
@@ -1291,16 +1366,12 @@ export default function ArabicExam() {
             
             .note-title { 
               direction: rtl; font-family: '${examConfig.questions.font}', sans-serif;
-              font-weight: 900; font-size: ${examConfig.questions.size}; margin-bottom: 18px; color: ${qColor};
-              ${tpl === 'minimalist' || tpl === 'compact' ? 'border-bottom: 1px solid #ccc; padding-bottom: 5px;' : `background: rgba(224, 242, 254, 0.8); padding: 9px 12px; border-radius: 4px; border-right: 5px solid ${qColor};`}
+              font-weight: 900; font-size: ${qSize}; margin-bottom: 18px; color: ${examConfig.questions.color};
+              ${tpl === 'minimalist' || tpl === 'compact' ? 'border-bottom: 1px solid #ccc; padding-bottom: 5px;' : `background: rgba(224, 242, 254, 0.8); padding: 9px 12px; border-radius: 4px; border-right: 5px solid ${examConfig.questions.color};`}
             }
-            .questions-list { direction: rtl; font-family: '${examConfig.questions.font}', sans-serif; display: flex; flex-direction: column; gap: 14px; }
-            .question-item { font-size: ${examConfig.questions.size}; background: ${qItemBgCSS}; padding: ${qShadingType !== 'none' ? '12px 14px' : '2px 0'}; border-radius: ${qShadingType !== 'none' ? '6px' : '0'}; border: ${qShadingType !== 'none' ? '1px solid rgba(0,0,0,0.06)' : 'none'}; }
-            .question-main { display: flex; align-items: flex-start; margin-bottom: 8px; }
-            .question-num { font-weight: 900; min-width: 48px; color: #ffffff; background: ${tpl === 'minimalist' ? '#000' : qColor}; text-align: center; border-radius: 4px; padding: 3px 0; margin-left: 12px; }
-            .question-text { flex: 1; font-weight: 800; color: #0f172a; }
+            .questions-list { direction: rtl; display: flex; flex-direction: column; gap: 14px; }
             
-            .passage-box { background: rgba(248, 250, 252, 0.9); border: 1px solid rgba(203, 213, 225, 0.8); padding: 10px 12px; border-radius: 6px; margin-bottom: 10px; font-size: calc(${examConfig.questions.size} - 0.5px); line-height: 1.6; }
+            .passage-box { background: rgba(248, 250, 252, 0.9); border: 1px solid rgba(203, 213, 225, 0.8); padding: 10px 12px; border-radius: 6px; margin-bottom: 10px; line-height: 1.6; }
             .word-bank-box { background: rgba(241, 245, 249, 0.9); border: 1px dashed rgba(148, 163, 184, 0.8); padding: 6px 12px; border-radius: 4px; margin-bottom: 10px; font-weight: bold; text-align: center; }
             
             .exam-table { width: 100%; border-collapse: collapse; margin-top: 8px; border: 1.5px solid ${tableColor}; }
@@ -1309,12 +1380,12 @@ export default function ArabicExam() {
             .exam-table td { color: #0f172a; }
 
             .fill-sentences-list { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
-            .fill-sentence-item { display: flex; align-items: flex-start; font-size: calc(${examConfig.questions.size} - 0.5px); }
-            .fill-num { font-weight: 900; color: ${qColor}; min-width: 28px; }
+            .fill-sentence-item { display: flex; align-items: flex-start; }
+            .fill-num { font-weight: 900; min-width: 28px; }
 
             .sub-questions-list { margin-right: 54px; border-right: 2.5px dashed rgba(147, 197, 253, 0.8); padding-right: 14px; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
-            .sub-question-item { display: flex; align-items: flex-start; font-size: calc(${examConfig.questions.size} - 1px); }
-            .sub-letter { font-weight: 900; color: ${tpl === 'minimalist' ? '#000' : qColor}; min-width: 28px; background: rgba(240, 253, 244, 0.9); border: 1px solid rgba(187, 247, 208, 0.8); border-radius: 3px; text-align: center; padding: 2px 0; margin-left: 8px; }
+            .sub-question-item { display: flex; align-items: flex-start; }
+            .sub-letter { font-weight: 900; min-width: 28px; background: rgba(240, 253, 244, 0.9); border: 1px solid rgba(187, 247, 208, 0.8); border-radius: 3px; text-align: center; padding: 2px 0; margin-left: 8px; }
             .sub-text { flex: 1; font-weight: 700; color: #334155; }
           </style>
         </head>
@@ -1327,9 +1398,15 @@ export default function ArabicExam() {
                 ${questions.map((q, idx) => {
                   let contentHTML = '';
                   const formattedQNum = formatNum(idx + 1, numStyle);
+                  const qFont = q.font || examConfig.questions.font;
+                  const qColor = q.color || examConfig.questions.color;
+                  const qShadingType = q.shading || 'none';
+                  const qItemBgCSS = getBackgroundColor(qShadingType);
+                  const qSubStyle = q.subStyle || globalSubStyle;
+                  const qScoreStr = q.score ? `(${q.score})` : '';
                   
                   if (q.type === 'comprehension') {
-                    contentHTML += `<div class="passage-box"><strong>القطعة:</strong> ${q.passage || ''}</div>`;
+                    contentHTML += `<div class="passage-box" style="font-family: '${qFont}', sans-serif; font-size: ${qSize};"><strong>القطعة:</strong> ${q.passage || ''}</div>`;
                   } else if (q.type === 'table') {
                     const rows = q.rows || 3;
                     const cols = q.cols || 3;
@@ -1348,16 +1425,16 @@ export default function ArabicExam() {
                     }
                     contentHTML += `</table>`;
                   } else if (q.type === 'mcq') {
-                    contentHTML += `<div style="margin-top: 6px; font-weight: 600; color: #475569;">الخيارات: ${q.mcqChoices || ''}</div>`;
+                    contentHTML += `<div style="margin-top: 6px; font-weight: 600; color: #475569; font-family: '${qFont}', sans-serif; font-size: ${qSize};">الخيارات: ${q.mcqChoices || ''}</div>`;
                   } else if (q.type === 'fill') {
-                    contentHTML += `<div class="word-bank-box">صندوق الكلمات: [ ${q.wordBank || ''} ]</div>`;
+                    contentHTML += `<div class="word-bank-box" style="font-family: '${qFont}', sans-serif; font-size: ${qSize};">صندوق الكلمات: [ ${q.wordBank || ''} ]</div>`;
                     if (q.fillSentences && q.fillSentences.length > 0) {
                       contentHTML += `<div class="fill-sentences-list">`;
                       q.fillSentences.forEach((fs, fIdx) => {
                         contentHTML += `
-                          <div class="fill-sentence-item">
-                            <span class="fill-num">${formatNum(fIdx + 1, numStyle)})</span>
-                            <span style="flex: 1; font-weight: 600;">${fs.text || ''}</span>
+                          <div class="fill-sentence-item" style="font-family: '${qFont}', sans-serif; font-size: ${qSize};">
+                            <span class="fill-num" style="color: ${qColor};">${formatNum(fIdx + 1, numStyle)})</span>
+                            <span style="flex: 1; font-weight: 600; color: ${qColor};">${fs.text || ''}</span>
                           </div>
                         `;
                       });
@@ -1366,19 +1443,22 @@ export default function ArabicExam() {
                   }
 
                   return `
-                    <div class="question-item">
-                      <div class="question-main">
-                        <span class="question-num">س ${formattedQNum}</span>
-                        <span class="question-text">${q.text}</span>
+                    <div class="question-item" style="font-family: '${qFont}', sans-serif; font-size: ${qSize}; color: ${qColor}; background: ${qItemBgCSS}; padding: ${qShadingType !== 'none' ? '12px 14px' : '2px 0'}; border-radius: ${qShadingType !== 'none' ? '6px' : '0'}; border: ${qShadingType !== 'none' ? '1px solid rgba(0,0,0,0.06)' : 'none'};">
+                      <div class="question-main" style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px;">
+                        <div style="display: flex; align-items: flex-start; flex: 1;">
+                          <span class="question-num" style="font-weight: 900; min-width: 48px; color: #ffffff; background: ${tpl === 'minimalist' ? '#000' : qColor}; text-align: center; border-radius: 4px; padding: 3px 0; margin-left: 12px;">س ${formattedQNum}</span>
+                          <span class="question-text" style="flex: 1; font-weight: 800; color: ${qColor};">${q.text}</span>
+                        </div>
+                        ${qScoreStr ? `<span style="font-weight: 900; color: ${qColor}; margin-right: 15px; white-space: nowrap;">${qScoreStr}</span>` : ''}
                       </div>
                       ${q.imageBase64 ? `<div style="text-align: ${q.imageAlign || 'center'}; margin: 10px 0; width: 100%; display: block;"><img src="${q.imageBase64}" style="width: ${q.imageSize || '50%'}; max-width: 100%; border-radius: 6px; border: 1px solid #cbd5e1;" /></div>` : ''}
                       ${contentHTML}
                       ${q.subQuestions && q.subQuestions.length > 0 ? `
                         <div class="sub-questions-list">
                           ${q.subQuestions.map((sub, sIdx) => `
-                            <div class="sub-question-item">
-                              <span class="sub-letter">${getSubLabelText(sIdx, subStyle, numStyle)}</span>
-                              <span class="sub-text">${sub.text}</span>
+                            <div class="sub-question-item" style="font-family: '${qFont}', sans-serif; font-size: calc(${qSize} - 1px);">
+                              <span class="sub-letter" style="color: ${tpl === 'minimalist' ? '#000' : qColor};">${getSubLabelText(sIdx, qSubStyle, numStyle)}</span>
+                              <span class="sub-text" style="color: ${qColor};">${sub.text}</span>
                             </div>
                           `).join('')}
                         </div>
@@ -1407,7 +1487,6 @@ export default function ArabicExam() {
     if (questions.length === 0) return;
     Keyboard.dismiss();
     
-    // فحص الاشتراك والمحاولات المجانية قبل الطباعة
     const canProceed = await handleExportAttempt();
     if (!canProceed) return;
 
@@ -1419,26 +1498,6 @@ export default function ArabicExam() {
       Alert.alert('خطأ', 'تعذرت عملية الطباعة');
     } finally {
       setIsPrinting(false);
-    }
-  };
-
-  const handleExportPDF = async () => {
-    if (questions.length === 0) return;
-    Keyboard.dismiss();
-
-    // فحص الاشتراك والمحاولات المجانية قبل التصدير
-    const canProceed = await handleExportAttempt();
-    if (!canProceed) return;
-
-    setIsExporting(true);
-    try {
-      const finalHTML = generateExamHTML() + getWatermarkHTML();
-      const { uri } = await Print.printToFileAsync({ html: finalHTML, width: 595, height: 842 });
-      await shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
-    } catch (error) {
-      Alert.alert('خطأ', 'فشلت عملية التصدير.');
-    } finally {
-      setIsExporting(false);
     }
   };
 
@@ -1493,7 +1552,7 @@ export default function ArabicExam() {
               </View>
               <Ionicons name="chevron-down" size={18} color="#6E7A41" />
             </TouchableOpacity>
-            <Text style={[styles.configGroupTitle, { marginTop: 10, fontSize: 12 }]}>يحدد هذا الخيار هيكلية وتوزيع رأس وتذييل الصفحة في ملف الـ PDF (يوجد 15 خيار احترافي).</Text>
+            <Text style={[styles.configGroupTitle, { marginTop: 10, fontSize: 12 }]}>يحدد هذا الخيار هيكلية وتوزيع رأس وتذييل الصفحة في ملف الـ PDF.</Text>
           </BlurView>
 
           <BlurView intensity={60} tint="light" style={styles.glassCard}>
@@ -1503,10 +1562,6 @@ export default function ArabicExam() {
               </View>
               <Text style={styles.sectionTitle}>التأثيرات الزجاجية الفاخرة</Text>
             </View>
-            
-            <Text style={[styles.configGroupTitle, { color: '#6E7A41', fontSize: 11, marginBottom: 16 }]}>
-              (ملاحظة: هذه التأثيرات تتجاوز الألوان العادية إذا تم تفعيلها)
-            </Text>
             
             <View style={styles.inputRow}>
               <ModalDropdown label="لون الرأس الزجاجي" value={examConfig.glassEffects.header} options={glassColorOptions} isOpen={activeDropdown === 'gHeader'} onToggle={() => toggleDropdown('gHeader')} onSelect={(v) => setExamConfig(p => ({...p, glassEffects: {...p.glassEffects, header: v}}))} />
@@ -1547,7 +1602,7 @@ export default function ArabicExam() {
               <View style={[styles.iconContainer, { backgroundColor: 'rgba(75, 83, 32, 0.1)' }]}>
                 <Ionicons name="color-palette" size={20} color="#4B5320" />
               </View>
-              <Text style={styles.sectionTitle}>التنسيقات والألوان</Text>
+              <Text style={styles.sectionTitle}>التنسيقات العامة (قيم افتراضية للأسئلة الجديدة)</Text>
             </View>
             
             <Text style={styles.configGroupTitle}>تنسيقات الرأس</Text>
@@ -1560,22 +1615,14 @@ export default function ArabicExam() {
               <ModalDropdown label="تظليل الرأس" value={examConfig.pdfHeaderShading} options={headerShadingOptions} isOpen={activeDropdown === 'hShading'} onToggle={() => toggleDropdown('hShading')} onSelect={(v) => setExamConfig(p => ({...p, pdfHeaderShading: v}))} />
             </View>
 
-            <Text style={[styles.configGroupTitle, { marginTop: 15 }]}>تنسيقات الأسئلة والترقيم</Text>
+            <Text style={[styles.configGroupTitle, { marginTop: 15 }]}>إعدادات عامة للأسئلة والترقيم</Text>
             <View style={styles.inputRow}>
-              <ModalDropdown label="الخط" value={examConfig.questions.font} options={arabicFonts} isOpen={activeDropdown === 'qFont'} onToggle={() => toggleDropdown('qFont')} onSelect={(v) => setExamConfig(p => ({...p, questions: {...p.questions, font: v}}))} />
-              <ModalDropdown label="الحجم" value={examConfig.questions.size} options={sizeOptions} isOpen={activeDropdown === 'qSize'} onToggle={() => toggleDropdown('qSize')} onSelect={(v) => setExamConfig(p => ({...p, questions: {...p.questions, size: v}}))} />
-            </View>
-            <View style={styles.inputRow}>
-              <ModalDropdown label="لون الأساس" value={examConfig.questions.color} options={colorOptions} isOpen={activeDropdown === 'qColor'} onToggle={() => toggleDropdown('qColor')} onSelect={(v) => setExamConfig(p => ({...p, questions: {...p.questions, color: v}}))} />
+              <ModalDropdown label="حجم الخط الثابت للأسئلة" value={examConfig.questions.size} options={sizeOptions} isOpen={activeDropdown === 'qSize'} onToggle={() => toggleDropdown('qSize')} onSelect={(v) => setExamConfig(p => ({...p, questions: {...p.questions, size: v}}))} />
               <ModalDropdown label="نوع الأرقام (عربي/إنجليزي)" value={examConfig.questions.numStyle || 'eastern'} options={numberingStyleOptions} isOpen={activeDropdown === 'qNumStyle'} onToggle={() => toggleDropdown('qNumStyle')} onSelect={(v) => setExamConfig(p => ({...p, questions: {...p.questions, numStyle: v}}))} />
             </View>
             <View style={styles.inputRow}>
-              <ModalDropdown label="تظليل خلفية السؤال" value={examConfig.questions.shading} options={questionShadingOptions} isOpen={activeDropdown === 'qShading'} onToggle={() => toggleDropdown('qShading')} onSelect={(v) => setExamConfig(p => ({...p, questions: {...p.questions, shading: v}}))} />
-              <ModalDropdown label="ترقيم الفروع الداخلية" value={examConfig.questions.subStyle} options={subStyleOptions} isOpen={activeDropdown === 'qSubStyle'} onToggle={() => toggleDropdown('qSubStyle')} onSelect={(v) => setExamConfig(p => ({...p, questions: {...p.questions, subStyle: v}}))} />
-            </View>
-            <View style={styles.inputRow}>
+              <ModalDropdown label="ترقيم الفروع الداخلية الافتراضي" value={examConfig.questions.subStyle} options={subStyleOptions} isOpen={activeDropdown === 'qSubStyle'} onToggle={() => toggleDropdown('qSubStyle')} onSelect={(v) => setExamConfig(p => ({...p, questions: {...p.questions, subStyle: v}}))} />
               <ModalDropdown label="تباعد السطور" value={examConfig.pdfLineSpacing} options={lineSpacingOptions} isOpen={activeDropdown === 'spacing'} onToggle={() => toggleDropdown('spacing')} onSelect={(v) => setExamConfig(p => ({...p, pdfLineSpacing: v}))} />
-              <View style={{flex: 1}}/>
             </View>
 
             <Text style={[styles.configGroupTitle, { marginTop: 15 }]}>تنسيقات الجدول</Text>
@@ -1621,8 +1668,11 @@ export default function ArabicExam() {
                 onUpdateFillSentence={handleUpdateFillSentence}
                 onDeleteFillSentence={handleDeleteFillSentence}
                 onDeleteQuestion={handleDeleteQuestion} 
-                subStyle={examConfig.questions.subStyle}
+                globalSubStyle={examConfig.questions.subStyle}
+                globalFontSize={examConfig.questions.size}
                 numStyle={examConfig.questions.numStyle || 'eastern'}
+                activeDropdown={activeDropdown}
+                onToggleDropdown={toggleDropdown}
                 activeTypeDropdown={activeTypeDropdown}
                 onOpenTypeModal={() => toggleTypeDropdown(q.id)}
               />
@@ -1654,15 +1704,6 @@ export default function ArabicExam() {
               </View>
               <Text style={[styles.dockBtnText, { color: '#4B5320' }]} numberOfLines={1}>طباعة</Text>
             </TouchableOpacity>
-
-            <View style={styles.dockDivider} />
-
-            <TouchableOpacity onPress={handleExportPDF} style={styles.dockBtn} disabled={isExporting || isPrinting} activeOpacity={0.7}>
-              <View style={[styles.dockIconBg, { backgroundColor: 'rgba(75, 83, 32, 0.1)' }]}>
-                {isGenerating ? <ActivityIndicator color="#4B5320" size="small" /> : <Ionicons name="share-outline" size={20} color="#4B5320" />}
-              </View>
-              <Text style={[styles.dockBtnText, { color: '#4B5320' }]} numberOfLines={1}>تصدير PDF</Text>
-            </TouchableOpacity>
           </BlurView>
         </View>
 
@@ -1685,7 +1726,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: '900', color: '#3f4a2e' },
   
   inputField: { backgroundColor: 'rgba(255, 255, 255, 0.8)', color: '#3f4a2e', borderRadius: 16, padding: 14, paddingHorizontal: 16, marginBottom: 12, textAlign: 'right', borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)', fontSize: 14 },
-  inputRow: { flexDirection: 'row-reverse', gap: 12 },
+  inputRow: { flexDirection: 'row-reverse', gap: 12, marginBottom: 4 },
   configGroupTitle: { color: '#6E7A41', fontSize: 13, marginBottom: 10, textAlign: 'right', fontWeight: '800', letterSpacing: 0.5 },
   
   dropdownWrapper: { flex: 1, marginBottom: 12 },
@@ -1735,6 +1776,9 @@ const styles = StyleSheet.create({
   worldQBadgeText: { color: '#fff', fontWeight: '900', fontSize: 13, letterSpacing: 0.5 },
   worldDeleteBtn: { padding: 10, backgroundColor: 'rgba(225, 29, 72, 0.1)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(225, 29, 72, 0.3)' },
   
+  questionCustomStyleBox: { backgroundColor: 'rgba(75, 83, 32, 0.04)', borderRadius: 16, padding: 12, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.12)' },
+  customStyleBoxTitle: { color: '#4B5320', fontSize: 12, fontWeight: '900', marginBottom: 8, textAlign: 'right' },
+
   worldOcrBtn: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(234, 88, 12, 0.3)', borderRadius: 14, padding: 12, marginBottom: 12, gap: 8, overflow: 'hidden', backgroundColor: 'rgba(234, 88, 12, 0.1)' },
   worldOcrText: { color: '#ea580c', fontSize: 13, fontWeight: '900' },
 
@@ -1754,7 +1798,7 @@ const styles = StyleSheet.create({
   subItemRowAr: { flexDirection: 'row-reverse', alignItems: 'flex-start', marginBottom: 10 },
   subLetterBadge: { width: 34, height: 34, justifyContent: 'center', alignItems: 'center', borderRadius: 10, marginLeft: 10, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)' },
   subLetterText: { color: '#4B5320', fontWeight: '900', fontSize: 13 },
-  subInput: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.8)', color: '#3f4a2e', borderRadius: 12, padding: 12, textAlign: 'right', fontSize: 13, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)' },
+  subInput: { flex: 1, backgroundColor: 'rgba(255, 255, 255, 0.8)', color: '#3f6212', borderRadius: 12, padding: 12, textAlign: 'right', fontSize: 13, borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)' },
   subDeleteBtn: { padding: 6, marginLeft: 4, justifyContent: 'center' },
 
   innerBtn: { flexDirection: 'row-reverse', gap: 8, backgroundColor: 'rgba(75, 83, 32, 0.08)', height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(75, 83, 32, 0.15)', marginTop: 8 },

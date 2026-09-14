@@ -5,10 +5,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import { useRouter } from 'expo-router';
 import { shareAsync } from 'expo-sharing';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { useSubscription } from '../context/SubscriptionContext';
 import { setExamStore } from '../utils/examStore';
-import { useSubscription } from './context/SubscriptionContext';
 
 const arabicFonts = [
   { label: 'كايرو (Cairo - موصى به)', value: 'Cairo' },

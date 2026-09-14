@@ -3,8 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -17,7 +16,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { useSubscription } from './context/SubscriptionContext';
+import { useSubscription } from '../context/SubscriptionContext';
 
 interface DailyColumn {
   id: string;
@@ -244,13 +243,12 @@ export default function GradeRegister() {
     saveDailyData(dailyColumns, updated);
   };
 
-  const exportToPDF = async () => {
+  const printDocument = async () => {
     if (dailyStudents.length === 0) {
-      Alert.alert('تنبيه', 'لا توجد بيانات طلاب يومية لتصديرها.');
+      Alert.alert('تنبيه', 'لا توجد بيانات طلاب يومية لطباعتها.');
       return;
     }
 
-    // التحقق من محاولات التصدير المجانية أو اشتراك الـ VIP
     const canProceed = await handleExportAttempt();
     if (!canProceed) return;
 
@@ -321,14 +319,9 @@ export default function GradeRegister() {
     `;
 
     try {
-      const { uri } = await Print.printToFileAsync({ html: htmlContent });
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri);
-      } else {
-        Alert.alert('تم الحفظ', `تم إنشاء ملف PDF بنجاح في المسار: ${uri}`);
-      }
+      await Print.printAsync({ html: htmlContent });
     } catch (error) {
-      Alert.alert('خطأ', 'حدث خطأ أثناء تصدير ملف الـ PDF');
+      Alert.alert('خطأ', 'حدث خطأ أثناء محاولة الطباعة');
     }
   };
 
@@ -360,13 +353,13 @@ export default function GradeRegister() {
             <Ionicons name="chevron-down" size={14} color="#3f6212" />
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={exportToPDF} style={styles.pdfExportBtn} activeOpacity={0.85}>
-            <Ionicons name="document-text-outline" size={16} color="#fff" />
-            <Text style={styles.pdfExportText}>PDF</Text>
+          <TouchableOpacity onPress={printDocument} style={styles.pdfExportBtn} activeOpacity={0.85}>
+            <Ionicons name="print-outline" size={16} color="#fff" />
+            <Text style={styles.pdfExportText}>طباعة</Text>
           </TouchableOpacity>
         </View>
 
-        {/* خانات البيانات التعريفية مع أيقونات فخمة */}
+        {/* خانات البيانات التعريفية */}
         <View style={styles.metaCard}>
           <View style={styles.metaInputWrapper}>
             <Ionicons name="school-outline" size={16} color="#3f6212" style={styles.metaIcon} />
@@ -403,7 +396,7 @@ export default function GradeRegister() {
           </View>
         </View>
 
-        {/* حقول الإضافة السريعة مع الأيقونات */}
+        {/* حقول الإضافة السريعة */}
         <View style={styles.controlsContainer}>
           <View style={styles.inputGroup}>
             <View style={styles.inputWithIconWrapper}>
@@ -442,12 +435,14 @@ export default function GradeRegister() {
           </View>
         </View>
 
-        {/* جدول الدرجات اليومية */}
+        {/* جدول الدرجات اليومية (مع تعديل الاتجاه القياسي لضمان التوافق التام مع APK Release) */}
         <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.horizontalScroll}>
           <View style={styles.tableContainer}>
             <View style={[styles.tableHeader, { backgroundColor: headerColor }]}>
-              <View style={styles.nameHeaderCell}><Text style={styles.headerText}>اسم الطالب</Text></View>
-              {dailyColumns.map(col => (
+              <View style={styles.actionHeaderCell}><Text style={styles.headerText}>حذف</Text></View>
+              <View style={styles.statHeaderCell}><Text style={styles.statHeaderText}>المعدل</Text></View>
+              <View style={styles.statHeaderCell}><Text style={styles.statHeaderText}>المجموع</Text></View>
+              {[...dailyColumns].reverse().map(col => (
                 <View key={col.id} style={styles.columnHeaderCell}>
                   <TouchableOpacity onPress={() => deleteDailyColumn(col.id)} style={styles.colDeleteIcon}>
                     <Ionicons name="close-circle" size={14} color="#fee2e2" />
@@ -455,9 +450,7 @@ export default function GradeRegister() {
                   <Text style={styles.headerText} numberOfLines={1}>{col.title}</Text>
                 </View>
               ))}
-              <View style={styles.statHeaderCell}><Text style={styles.statHeaderText}>المجموع</Text></View>
-              <View style={styles.statHeaderCell}><Text style={styles.statHeaderText}>المعدل</Text></View>
-              <View style={styles.actionHeaderCell}><Text style={styles.headerText}>حذف</Text></View>
+              <View style={styles.nameHeaderCell}><Text style={styles.headerText}>اسم الطالب</Text></View>
             </View>
 
             <FlatList
@@ -467,10 +460,18 @@ export default function GradeRegister() {
                 const stats = calculateDailyStats(student.grades);
                 return (
                   <View style={styles.tableRow}>
-                    <View style={styles.nameCell}>
-                      <Text style={styles.studentNameText} numberOfLines={1}>{student.name}</Text>
+                    <View style={styles.actionCell}>
+                      <TouchableOpacity onPress={() => deleteStudent(student.id)} style={styles.deleteRowBtn}>
+                        <Ionicons name="trash-outline" size={15} color="#b91c1c" />
+                      </TouchableOpacity>
                     </View>
-                    {dailyColumns.map(col => {
+                    <View style={styles.statCell}>
+                      <Text style={[styles.statText, stats.average < 50 && { color: '#b91c1c' }]}>
+                        {formatGradeDisplay(stats.average)}
+                      </Text>
+                    </View>
+                    <View style={styles.statCell}><Text style={styles.statText}>{formatNum(stats.total)}</Text></View>
+                    {[...dailyColumns].reverse().map(col => {
                       const val = parseGrade(student.grades[col.id]);
                       const isRed = !isNaN(val) && val < 50;
                       return (
@@ -486,16 +487,8 @@ export default function GradeRegister() {
                         </View>
                       );
                     })}
-                    <View style={styles.statCell}><Text style={styles.statText}>{formatNum(stats.total)}</Text></View>
-                    <View style={styles.statCell}>
-                      <Text style={[styles.statText, stats.average < 50 && { color: '#b91c1c' }]}>
-                        {formatGradeDisplay(stats.average)}
-                      </Text>
-                    </View>
-                    <View style={styles.actionCell}>
-                      <TouchableOpacity onPress={() => deleteStudent(student.id)} style={styles.deleteRowBtn}>
-                        <Ionicons name="trash-outline" size={15} color="#b91c1c" />
-                      </TouchableOpacity>
+                    <View style={styles.nameCell}>
+                      <Text style={styles.studentNameText} numberOfLines={1}>{student.name}</Text>
                     </View>
                   </View>
                 );
@@ -587,7 +580,7 @@ const styles = StyleSheet.create({
 
   horizontalScroll: { flex: 1 },
   tableContainer: { minWidth: '100%' },
-  tableHeader: { flexDirection: 'row-reverse', borderRadius: 16, paddingVertical: 12, marginBottom: 10, alignItems: 'center', shadowColor: '#4d7c0f', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 6 },
+  tableHeader: { flexDirection: 'row', borderRadius: 16, paddingVertical: 12, marginBottom: 10, alignItems: 'center', shadowColor: '#4d7c0f', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 6 },
   nameHeaderCell: { width: 160, paddingHorizontal: 12, alignItems: 'flex-end' },
   columnHeaderCell: { width: 85, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   statHeaderCell: { width: 75, alignItems: 'center', justifyContent: 'center' },
@@ -596,7 +589,7 @@ const styles = StyleSheet.create({
   statHeaderText: { color: '#fefce8', fontWeight: '900', fontSize: 12.5, textAlign: 'center', fontFamily: 'Tajawal' },
   colDeleteIcon: { position: 'absolute', top: -6, left: 4, zIndex: 1 },
   listContent: { paddingBottom: 30 },
-  tableRow: { flexDirection: 'row-reverse', backgroundColor: '#ffffff', borderRadius: 14, paddingVertical: 10, marginBottom: 8, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(101, 163, 13, 0.2)', shadowColor: '#4d7c0f', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
+  tableRow: { flexDirection: 'row', backgroundColor: '#ffffff', borderRadius: 14, paddingVertical: 10, marginBottom: 8, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(101, 163, 13, 0.2)', shadowColor: '#4d7c0f', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
   nameCell: { width: 160, paddingHorizontal: 12, alignItems: 'flex-end' },
   studentNameText: { color: '#1a2e05', fontSize: 13.5, fontWeight: '800', textAlign: 'right', fontFamily: 'Tajawal' },
   gradeCell: { width: 85, alignItems: 'center', justifyContent: 'center' },

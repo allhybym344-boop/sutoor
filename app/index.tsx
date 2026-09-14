@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Dimensions,
@@ -21,21 +21,23 @@ import {
 
 const { width } = Dimensions.get('window');
 
+// ⚠️ استبدل هذا الرابط بنطاقك الحقيقي لاحقاً عند تفعيل التحديثات
+const UPDATE_CHECK_URL = 'https://yourdomain.com/sutoor/version.json';
+
 export default function MainMenuScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
-  // فحص التحديثات تلقائياً عند فتح الشاشة الرئيسية
+  // فحص التحديثات مؤجل لحين إعداد سيرفر التحديثات الخاص بك
   useEffect(() => {
-    checkForUpdates();
+    // checkForUpdates(); 
   }, []);
 
   const checkForUpdates = async () => {
-    if (Platform.OS !== 'android') return; // التحديث التلقائي للـ APK مخصص لأندرويد فقط
+    if (Platform.OS !== 'android') return;
 
     try {
-      // استبدل الرابط أدناه برابط ملف version.json الخاص بك على السيرفر
-      const response = await fetch('https://yourdomain.com/sutoor/version.json');
+      const response = await fetch(UPDATE_CHECK_URL);
       const remoteData = await response.json(); 
 
       const currentVersionCode = Constants.expoConfig?.android?.versionCode || 1;
@@ -94,7 +96,7 @@ export default function MainMenuScreen() {
     router.push(path as any);
   };
 
-  // الأدوات الأساسية الخاصة بالمنظومة المدرسية الرسمية والسجلات
+  // الأدوات الأساسية والخدمات التعليمية الرسمية والسجلات
   const primaryTools = [
     {
       id: 'exam',
@@ -175,7 +177,7 @@ export default function MainMenuScreen() {
     },
     {
       id: 'GradeRegister',
-      title: 'صانع سجلات الدرجات للمعلم والمدرس ',
+      title: 'صانع سجلات الدرجات للمعلم والمدرس',
       category: 'درجات الطلاب',
       description: 'تصميم وتصدير سجلات درجات الطلاب اليومية والشهرية والسعي السنوي بصيغة PDF.',
       icon: 'id-card' as const,
@@ -194,6 +196,17 @@ export default function MainMenuScreen() {
       tagColor: '#1a2e05',
       tagBg: 'rgba(26, 46, 5, 0.1)',
       path: '/StudentCard',
+    },
+    {
+      id: 'DailyLessonsScreen',
+      title: 'صانع الخطة السنوية اليومية وتوزيع المنهج',
+      category: 'التخطيط اليومي',
+      description: 'تنظيم وتوزيع الدروس اليومية، الوحدات الدراسية، وتقسيمات المنهج مع تتبع الإنجاز وتصدير PDF.',
+      icon: 'journal-outline' as const,
+      colors: ['#3f6212', '#1a2e05'],
+      tagColor: '#1a2e05',
+      tagBg: 'rgba(26, 46, 5, 0.1)',
+      path: '/DailyLessonsScreen',
     },
   ];
 
@@ -228,28 +241,10 @@ export default function MainMenuScreen() {
           </View>
 
           <Text style={styles.title}>سطور للطباعة</Text>
-          <Text style={styles.subtitle}>منظومة رقمية متكاملة لتصميم الاختبارات، الجداول، الهويات، الشهادات، السجلات، وبطاقات الجلوس</Text>
+          <Text style={styles.subtitle}>منظومة رقمية متكاملة لتصميم الاختبارات، الجداول، الهويات، الشهادات، السجلات، وتوزيع المناهج</Text>
         </View>
 
-        {/* زر الانتقال لشاشة الملحقات المستقلة */}
-        <TouchableOpacity 
-          activeOpacity={0.9} 
-          onPress={() => handleNavigate('/supplementary')} 
-          style={styles.supplementaryBannerContainer}
-        >
-          <LinearGradient colors={['#3f6212', '#1a2e05']} start={{x:0, y:0}} end={{x:1, y:1}} style={styles.supplementaryBanner}>
-            <View style={styles.supplementaryContent}>
-              <View style={styles.supplementaryIconBox}>
-                <Ionicons name="folder-open" size={24} color="#b7d38d" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.supplementaryTitle}>الملحقات والخدمات الإضافية</Text>
-                <Text style={styles.supplementaryDesc}>وصولولات التسوق، المناوبات، الجداول الرياضية، والمزيد...</Text>
-              </View>
-              <Ionicons name="chevron-back" size={20} color="#b7d38d" />
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
+       
 
         <View style={styles.searchContainer}>
           <Ionicons name="search-outline" size={20} color="#65a30d" style={styles.searchIcon} />

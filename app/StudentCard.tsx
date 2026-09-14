@@ -4,8 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import { useRouter } from 'expo-router';
-import * as Sharing from 'expo-sharing';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -17,7 +16,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { useSubscription } from './context/SubscriptionContext';
+import { useSubscription } from '../context/SubscriptionContext';
 
 interface SubjectGrade {
   id: string;
@@ -60,7 +59,6 @@ const COLOR_PALETTE = [
 export default function StudentCardScreen() {
   const router = useRouter();
 
-  // ربط نظام الاشتراكات والمحاولات والعلامة المائية
   const { handleExportAttempt, getWatermarkHTML } = useSubscription();
 
   const [numberStyle, setNumberStyle] = useState<'arabic' | 'english'>('arabic');
@@ -311,10 +309,9 @@ export default function StudentCardScreen() {
     return { firstTermAvg, secondTermAvg, annualEffort, finalGrade };
   };
 
-  const exportCardToPDF = async () => {
+  const printStudentCard = async () => {
     if (!currentStudent) return;
 
-    // التحقق من محاولات التصدير المجانية أو اشتراك الـ VIP قبل التصدير
     const canProceed = await handleExportAttempt();
     if (!canProceed) return;
 
@@ -447,14 +444,9 @@ export default function StudentCardScreen() {
     `;
 
     try {
-      const { uri } = await Print.printToFileAsync({ html: htmlContent });
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri);
-      } else {
-        Alert.alert('تم الحفظ', `تم إنشاء ملف PDF بنجاح في المسار: ${uri}`);
-      }
+      await Print.printAsync({ html: htmlContent });
     } catch (error) {
-      Alert.alert('خطأ', 'حدث خطأ أثناء تصدير كارت الطالب الشامل');
+      Alert.alert('خطأ', 'حدث خطأ أثناء طباعة كارت الطالب الشامل');
     }
   };
 
@@ -470,7 +462,6 @@ export default function StudentCardScreen() {
           <Ionicons name="arrow-forward" size={20} color="#1a2e05" />
         </TouchableOpacity>
 
-        {/* منفذ اختيار الألوان للـ PDF */}
         <TouchableOpacity 
           onPress={() => { Haptics.selectionAsync(); setShowColorModal(true); }} 
           style={styles.colorSelectorBtn}
@@ -674,29 +665,16 @@ export default function StudentCardScreen() {
                         </TouchableOpacity>
                       </View>
 
+                      {/* تم عكس ترتيب العناصر هنا يدويئاً لضمان عدم انعكاسها في APK Release */}
                       <ScrollView horizontal showsHorizontalScrollIndicator={true} contentContainerStyle={styles.subScrollRow}>
-                        <View style={styles.inputFieldBox}><Text style={styles.fLabel}>ت1</Text>{renderInput('t1', sub.t1)}</View>
-                        <View style={styles.inputFieldBox}><Text style={styles.fLabel}>ت2</Text>{renderInput('t2', sub.t2)}</View>
-                        <View style={styles.inputFieldBox}><Text style={styles.fLabel}>ك1</Text>{renderInput('k1', sub.k1)}</View>
-                        
-                        <View style={styles.calcFieldBox}>
-                          <Text style={styles.fLabelCalc}>م. الفصل 1</Text>
-                          <Text style={[styles.fValCalc, stats.firstTermAvg !== null && stats.firstTermAvg < 50 && { color: '#b91c1c' }]}>
-                            {formatGradeDisplay(stats.firstTermAvg)}
+                        <View style={styles.finalFieldBox}>
+                          <Text style={styles.fLabelFinal}>الدرجة النهائية</Text>
+                          <Text style={[styles.fValFinal, stats.finalGrade !== null && stats.finalGrade < 50 && { color: '#b91c1c' }]}>
+                            {formatGradeDisplay(stats.finalGrade)}
                           </Text>
                         </View>
 
-                        <View style={styles.inputFieldBox}><Text style={styles.fLabel}>نصف سنة</Text>{renderInput('midYear', sub.midYear)}</View>
-                        <View style={styles.inputFieldBox}><Text style={styles.fLabel}>شباط</Text>{renderInput('feb', sub.feb)}</View>
-                        <View style={styles.inputFieldBox}><Text style={styles.fLabel}>آذار</Text>{renderInput('mar', sub.mar)}</View>
-                        <View style={styles.inputFieldBox}><Text style={styles.fLabel}>نيسان</Text>{renderInput('apr', sub.apr)}</View>
-
-                        <View style={styles.calcFieldBox}>
-                          <Text style={styles.fLabelCalc}>م. الفصل 2</Text>
-                          <Text style={[styles.fValCalc, stats.secondTermAvg !== null && stats.secondTermAvg < 50 && { color: '#b91c1c' }]}>
-                            {formatGradeDisplay(stats.secondTermAvg)}
-                          </Text>
-                        </View>
+                        <View style={styles.inputFieldBox}><Text style={styles.fLabel}>النهائي</Text>{renderInput('finalExam', sub.finalExam)}</View>
 
                         <View style={styles.calcFieldBox}>
                           <Text style={styles.fLabelCalc}>السعي السنوي</Text>
@@ -705,14 +683,28 @@ export default function StudentCardScreen() {
                           </Text>
                         </View>
 
-                        <View style={styles.inputFieldBox}><Text style={styles.fLabel}>النهائي</Text>{renderInput('finalExam', sub.finalExam)}</View>
-
-                        <View style={styles.finalFieldBox}>
-                          <Text style={styles.fLabelFinal}>الدرجة النهائية</Text>
-                          <Text style={[styles.fValFinal, stats.finalGrade !== null && stats.finalGrade < 50 && { color: '#b91c1c' }]}>
-                            {formatGradeDisplay(stats.finalGrade)}
+                        <View style={styles.calcFieldBox}>
+                          <Text style={styles.fLabelCalc}>م. الفصل 2</Text>
+                          <Text style={[styles.fValCalc, stats.secondTermAvg !== null && stats.secondTermAvg < 50 && { color: '#b91c1c' }]}>
+                            {formatGradeDisplay(stats.secondTermAvg)}
                           </Text>
                         </View>
+
+                        <View style={styles.inputFieldBox}><Text style={styles.fLabel}>نيسان</Text>{renderInput('apr', sub.apr)}</View>
+                        <View style={styles.inputFieldBox}><Text style={styles.fLabel}>آذار</Text>{renderInput('mar', sub.mar)}</View>
+                        <View style={styles.inputFieldBox}><Text style={styles.fLabel}>شباط</Text>{renderInput('feb', sub.feb)}</View>
+                        <View style={styles.inputFieldBox}><Text style={styles.fLabel}>نصف سنة</Text>{renderInput('midYear', sub.midYear)}</View>
+
+                        <View style={styles.calcFieldBox}>
+                          <Text style={styles.fLabelCalc}>م. الفصل 1</Text>
+                          <Text style={[styles.fValCalc, stats.firstTermAvg !== null && stats.firstTermAvg < 50 && { color: '#b91c1c' }]}>
+                            {formatGradeDisplay(stats.firstTermAvg)}
+                          </Text>
+                        </View>
+
+                        <View style={styles.inputFieldBox}><Text style={styles.fLabel}>ك1</Text>{renderInput('k1', sub.k1)}</View>
+                        <View style={styles.inputFieldBox}><Text style={styles.fLabel}>ت2</Text>{renderInput('t2', sub.t2)}</View>
+                        <View style={styles.inputFieldBox}><Text style={styles.fLabel}>ت1</Text>{renderInput('t1', sub.t1)}</View>
                       </ScrollView>
                     </View>
                   );
@@ -720,12 +712,12 @@ export default function StudentCardScreen() {
               )}
 
               <TouchableOpacity
-                onPress={exportCardToPDF}
+                onPress={printStudentCard}
                 style={[styles.exportCardBtn, { backgroundColor: headerColor }]}
                 activeOpacity={0.85}
               >
-                <Ionicons name="document-text-outline" size={18} color="#fff" />
-                <Text style={styles.exportCardBtnText}>تصدير كارت الطالب الشامل لـ PDF</Text>
+                <Ionicons name="print-outline" size={18} color="#fff" />
+                <Text style={styles.exportCardBtnText}>طباعة كارت الطالب الشامل</Text>
               </TouchableOpacity>
             </View>
           )
@@ -743,7 +735,7 @@ export default function StudentCardScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContentBox}>
             <View style={styles.modalHeaderRow}>
-              <Text style={styles.modalTitle}>اختر لون الترويسة والجداول للـ PDF</Text>
+              <Text style={styles.modalTitle}>اختر لون الترويسة والجداول للطباعة</Text>
               <TouchableOpacity onPress={() => setShowColorModal(false)}>
                 <Ionicons name="close" size={20} color="#3f6212" />
               </TouchableOpacity>
@@ -891,7 +883,7 @@ const styles = StyleSheet.create({
   subBoxHeader: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10 },
   subBoxTitle: { color: '#fff', fontSize: 14, fontWeight: '900', fontFamily: 'Tajawal' },
   
-  subScrollRow: { flexDirection: 'row-reverse', gap: 12, padding: 14, alignItems: 'center' },
+  subScrollRow: { flexDirection: 'row', gap: 12, padding: 14, alignItems: 'center' },
 
   inputFieldBox: { width: 85, backgroundColor: '#fdfbfb', borderWidth: 1, borderColor: 'rgba(101, 163, 13, 0.25)', borderRadius: 14, padding: 10, alignItems: 'center' },
   fLabel: { color: '#3f6212', fontSize: 12, fontWeight: '900', marginBottom: 8, fontFamily: 'Tajawal' },

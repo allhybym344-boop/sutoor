@@ -4,7 +4,7 @@
     "slug": "sutoor",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/zzz.png",
+    "icon": "./assets/images/ssss.png",
     "scheme": "sutoor",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,7 +14,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#556B2F",
-        "foregroundImage": "./assets/images/zzz.png"
+        "foregroundImage": "./assets/images/ssss.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -37,7 +37,12 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-sharing",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
