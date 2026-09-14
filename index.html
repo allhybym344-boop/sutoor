@@ -3,245 +3,518 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مصطفى المهندس | البوابة الرسمية للمشاريع</title>
-    <!-- استيراد الخطوط والأيقونات -->
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <title>مصطفى المهندس | منصة التطبيقات الذكية</title>
+    <!-- استيراد خط Tajawal الفخم من Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-color: #05070b;
+            --card-bg: rgba(18, 24, 38, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary-gold: #f3c653;
+            --primary-gradient: linear-gradient(135deg, #f3c653 0%, #d4af37 100%);
+            --whatsapp-green: #25d366;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glow-shadow: 0 0 30px rgba(243, 198, 83, 0.15);
+        }
+
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-            font-family: 'Cairo', sans-serif;
+            font-family: 'Tajawal', sans-serif;
         }
 
         body {
-            /* خلفية بتدرج زيتوني أخضر هادئ وراقي جداً */
-            background: radial-gradient(circle at center, #243026 0%, #121813 100%);
-            color: #f8fafc;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(243, 198, 83, 0.05) 0%, transparent 40%);
+            color: var(--text-main);
             min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: rgba(5, 7, 11, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--card-border);
+            padding: 20px 48px;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 480px;
-            background: rgba(28, 38, 30, 0.75);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(143, 169, 133, 0.25);
-            border-radius: 28px;
-            padding: 45px 25px;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
-            text-align: center;
-            animation: fadeIn 0.8s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .profile-container {
-            position: relative;
-            margin: 0 auto 20px auto;
-            width: 105px;
-            height: 105px;
-        }
-
-        .profile-img {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid #a3b899; /* زيتوني فاتح مائل للخضرة الطبيعية */
-            background-color: #1c261e;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 42px;
-            color: #a3b899;
-            box-shadow: 0 0 25px rgba(163, 184, 153, 0.3);
-            animation: pulseGlow 3s infinite alternate;
-        }
-
-        @keyframes pulseGlow {
-            0% { box-shadow: 0 0 15px rgba(163, 184, 153, 0.2); }
-            100% { box-shadow: 0 0 35px rgba(163, 184, 153, 0.45); }
-        }
-
-        h1 {
-            font-size: 28px;
-            font-weight: 800;
-            margin-bottom: 6px;
-            color: #ffffff;
-            letter-spacing: 0.5px;
-        }
-
-        p.subtitle {
-            font-size: 15px;
-            color: #bce1b2; /* أخضر زيتوني فاتح ومشرق يريح العين */
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
-
-        p.bio {
-            font-size: 13.5px;
-            color: #c2d0bc; /* أبيض زيتي هادئ ومتطور */
-            margin-bottom: 35px;
-            line-height: 1.5;
-        }
-
-        .links-list {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .link-card {
-            display: flex;
-            align-items: center;
             justify-content: space-between;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(163, 184, 153, 0.2);
-            padding: 16px 22px;
-            border-radius: 16px;
-            color: #ffffff;
-            text-decoration: none;
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
 
-        .link-card:hover {
-            background: rgba(163, 184, 153, 0.15);
-            border-color: #a3b899;
-            transform: translateY(-4px);
-            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.35);
-        }
-
-        .link-card .icon-title {
+        .logo-container {
             display: flex;
             align-items: center;
-            gap: 14px;
-            font-weight: 600;
-            font-size: 15px;
-            color: #f0f4ee;
+            gap: 12px;
         }
 
-        .link-card i.fa-brands, .link-card i.fa-solid {
-            font-size: 20px;
-            color: #a3b899;
-            transition: transform 0.3s ease;
-        }
-
-        .link-card:hover i.fa-brands, .link-card:hover i.fa-solid {
-            transform: scale(1.15);
-        }
-
-        .link-card .arrow-icon {
-            width: 32px;
-            height: 32px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 50%;
+        .logo-badge {
+            width: 42px;
+            height: 42px;
+            background: var(--primary-gradient);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-weight: 900;
+            color: #05070b;
+            font-size: 20px;
+            box-shadow: 0 0 20px rgba(243, 198, 83, 0.4);
+        }
+
+        header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to right, #ffffff, var(--text-muted));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .contact-header-btn {
+            background: rgba(37, 211, 102, 0.1);
+            color: var(--whatsapp-green);
+            border: 1px solid rgba(37, 211, 102, 0.3);
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             transition: all 0.3s ease;
         }
 
-        .link-card .fa-arrow-left {
+        .contact-header-btn:hover {
+            background: rgba(37, 211, 102, 0.2);
+            box-shadow: 0 0 15px rgba(37, 211, 102, 0.3);
+        }
+
+        .hero-section {
+            text-align: center;
+            padding: 60px 20px 30px;
+        }
+
+        .hero-section h2 {
+            font-size: 36px;
+            font-weight: 900;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #ffffff 30%, var(--primary-gold) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-section p {
+            color: var(--text-muted);
+            font-size: 16px;
+            max-width: 600px;
+            margin: 0 auto;
+            font-weight: 300;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 20px 32px 60px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 40px 0 24px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title span {
+            color: var(--primary-gold);
+        }
+
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 28px;
+        }
+
+        .app-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 30px 24px;
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .app-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--primary-gradient);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .app-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(243, 198, 83, 0.3);
+            box-shadow: var(--glow-shadow);
+        }
+
+        .app-card:hover::before {
+            opacity: 1;
+        }
+
+        .app-icon {
+            width: 88px;
+            height: 88px;
+            border-radius: 22px;
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            color: var(--primary-gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 38px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .app-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 6px;
+        }
+
+        .app-category {
             font-size: 13px;
-            color: #c2d0bc;
-            transition: transform 0.3s ease, color 0.3s ease;
+            color: var(--primary-gold);
+            background: rgba(243, 198, 83, 0.08);
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            font-weight: 500;
         }
 
-        .link-card:hover .arrow-icon {
-            background: #a3b899;
+        .app-meta {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-bottom: 24px;
+            padding: 10px 0;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 12px;
+            color: var(--text-muted);
         }
 
-        .link-card:hover .fa-arrow-left {
-            transform: translateX(-4px);
-            color: #121813;
+        .download-btn {
+            background: var(--primary-gradient);
+            color: #05070b;
+            border: none;
+            border-radius: 14px;
+            padding: 12px 28px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(243, 198, 83, 0.2);
+        }
+
+        .download-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(243, 198, 83, 0.4);
+            filter: brightness(1.1);
+        }
+
+        /* تصميم قسم الردود والخيارات المهيئة (FAQ & Preset Options) */
+        .preset-section {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 50px;
+            backdrop-filter: blur(16px);
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .preset-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .preset-card:hover {
+            border-color: rgba(243, 198, 83, 0.3);
+            background: rgba(243, 198, 83, 0.03);
+            transform: translateY(-3px);
+        }
+
+        .preset-question {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .preset-question::after {
+            content: '+';
+            font-size: 20px;
+            color: var(--primary-gold);
+            transition: transform 0.3s;
+        }
+
+        .preset-card.active .preset-question::after {
+            content: '-';
+        }
+
+        .preset-answer {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.6;
+            display: none;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .preset-card.active .preset-answer {
+            display: block;
+        }
+
+        .wa-reply-btn {
+            margin-top: 10px;
+            background: rgba(37, 211, 102, 0.15);
+            color: var(--whatsapp-green);
+            border: 1px solid rgba(37, 211, 102, 0.3);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: 0.2s;
+        }
+
+        .wa-reply-btn:hover {
+            background: rgba(37, 211, 102, 0.3);
+        }
+
+        /* زر الواتساب العائم */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background-color: var(--whatsapp-green);
+            color: #ffffff;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
+            z-index: 2000;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .whatsapp-float:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(37, 211, 102, 0.6);
         }
 
         footer {
-            margin-top: 35px;
-            font-size: 12px;
-            color: #8fa985;
-            border-top: 1px solid rgba(163, 184, 153, 0.12);
-            padding-top: 20px;
+            text-align: center;
+            padding: 30px;
+            color: var(--text-muted);
+            font-size: 13px;
+            border-top: 1px solid var(--card-border);
+            margin-top: 60px;
+            background: rgba(5, 7, 11, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            header { padding: 16px 20px; }
+            .container { padding: 10px 16px 40px; }
+            .hero-section h2 { font-size: 28px; }
+            .whatsapp-float { bottom: 20px; left: 20px; width: 52px; height: 52px; font-size: 26px; }
         }
     </style>
 </head>
 <body>
 
+    <header>
+        <div class="logo-container">
+            <div class="logo-badge">م</div>
+            <h1>مصطفى المهندس</h1>
+        </div>
+        <a href="https://wa.me/9647734664193?text=مرحباً%20مصطفى،%20أريد%20الاستفسار%20عن%20التبيقات" target="_blank" class="contact-header-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.15-.174.199-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.371l-.361-.214-3.732.982 9.98-3.648.235.148a9.863 9.863 0 014.931 8.525c0 5.446-4.43 9.876-9.876 9.876a9.852 9.852 0 01-6.99-2.905l-.184-.184-7.408 1.94 1.982-7.23-.21-.355a9.866 9.866 0 01-1.503-5.26c0-5.446 4.43-9.876 9.876-9.876 5.446 0 9.876 4.43 9.876 9.876 0 5.446-4.43 9.876-9.876 9.876zm0-21.752c-6.565 0-11.895 5.33-11.895 11.895 0 2.098.547 4.135 1.587 5.926l-1.687 6.155 6.31-1.655a11.84 11.84 0 005.695 1.455h.005c6.565 0 11.895-5.33 11.895-11.895s-5.33-11.895-11.895-11.895z"/></svg>
+            تواصل معي
+        </a>
+    </header>
+
+    <!-- زر الواتساب العائم الثابت -->
+    <a href="https://wa.me/9647734664193?text=مرحباً%20مصطفى،%20أريد%20الاستفسار%20عن%20التبيقات" target="_blank" class="whatsapp-float" aria-label="تواصل عبر الواتساب">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.15-.174.199-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.371l-.361-.214-3.732.982 9.98-3.648.235.148a9.863 9.863 0 014.931 8.525c0 5.446-4.43 9.876-9.876 9.876a9.852 9.852 0 01-6.99-2.905l-.184-.184-7.408 1.94 1.982-7.23-.21-.355a9.866 9.866 0 01-1.503-5.26c0-5.446 4.43-9.876 9.876-9.876 5.446 0 9.876 4.43 9.876 9.876 0 5.446-4.43 9.876-9.876 9.876zm0-21.752c-6.565 0-11.895 5.33-11.895 11.895 0 2.098.547 4.135 1.587 5.926l-1.687 6.155 6.31-1.655a11.84 11.84 0 005.695 1.455h.005c6.565 0 11.895-5.33 11.895-11.895s-5.33-11.895-11.895-11.895z"/></svg>
+    </a>
+
+    <div class="hero-section">
+        <h2>منصة تطبيقات مصطفى المهندس</h2>
+        <p>حمل أحدث إصدارات تطبيقاتك المصممة خصيصاً بأعلى معايير الأداء والجودة الرقمية.</p>
+    </div>
+
     <div class="container">
-        <!-- أيقونة الملف الشخصي المتوهجة -->
-        <div class="profile-container">
-            <div class="profile-img">
-                <i class="fa-solid fa-code"></i>
+        <h3 class="section-title">التطبيقات <span>المتاحة</span></h3>
+        <div class="apps-grid">
+            <!-- تطبيق 1: سطور للطباعة -->
+            <div class="app-card">
+                <div class="app-icon">س</div>
+                <div class="app-name">سطور للطباعة</div>
+                <div class="app-category">أنظمة الطباعة المتقدمة</div>
+                <div class="app-meta">
+                    <span>الإصدار: v1.2.0</span>
+                    <span>الحجم: متوافق</span>
+                </div>
+                <a href="https://github.com/allhybym344-boop/sutoor/releases/download/v1.2.0/application-b575d031-ce79-484d-b9c2-2f9f53099a28.apk" class="download-btn" download>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    تحميل APK مباشر
+                </a>
+            </div>
+
+            <!-- تطبيق 2: ZetaStore -->
+            <div class="app-card">
+                <div class="app-icon">Z</div>
+                <div class="app-name">Zeta Store</div>
+                <div class="app-category">خدمات رقمية وتسوق</div>
+                <div class="app-meta">
+                    <span>الإصدار: v2.1.0</span>
+                    <span>الحجم: 18 MB</span>
+                </div>
+                <a href="./apps/zetastore.apk" class="download-btn" download>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    تحميل APK مباشر
+                </a>
             </div>
         </div>
-        
-        <h1>مصطفى المهندس</h1>
-        <p class="subtitle">مطور برمجيات وتطبيقات موبايل</p>
-        <p class="bio">بوابتك الرسمية لاستعراض وتحميل أحدث التطبيقات والمشاريع البرمجية المبتكرة</p>
 
-        <!-- قائمة الروابط -->
-        <div class="links-list">
+        <!-- مركز الردود والخيارات المهيئة -->
+        <div class="preset-section">
+            <h3 class="section-title" style="margin-top:0;">مركز <span>الردود السريعة</span> والاستفسارات</h3>
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">اضغط على أي استفسار لمعرفة الجواب فوراً، أو أرسله مباشرة عبر الواتساب:</p>
             
-            <!-- تطبيق زيتا ستور (ZETA Store) - الإصدار v1.1.0 -->
-            <a href="https://github.com/allhybym344-boop/zeta-store-app/releases/download/v1.1.0/application-7def3e63-efdd-47a2-8968-648855623694.apk" class="link-card">
-                <div class="icon-title">
-                    <i class="fa-solid fa-store"></i>
-                    <span>تطبيق زيتا ستور (ZETA Store) - APK</span>
+            <div class="preset-grid">
+                <!-- السؤال 1 -->
+                <div class="preset-card" onclick="togglePreset(this)">
+                    <div class="preset-question">كيف أقوم بتثبيت ملف الـ APK على هاتفي؟</div>
+                    <div class="preset-answer">
+                        بعد تحميل الملف، قد يطلب منك الهاتف السماح بالتثبيت من مصادر غير معروفة (Unknown Sources)، قم بالسماح بذلك ثم اضغط على تثبيت (Install) وسيعمل التطبيق بكفاءة عالية.
+                        <br>
+                        <a href="https://wa.me/9647734664193?text=مرحباً%20مصطفى،%20لدي%20استفسار%20بخصوص%20طريقة%20تثبيت%20ملف%20الـ%20APK." target="_blank" class="wa-reply-btn" onclick="event.stopPropagation();">
+                            مراسلة مصطفى بهذا السؤال 💬
+                        </a>
+                    </div>
                 </div>
-                <div class="arrow-icon">
-                    <i class="fa-solid fa-arrow-left"></i>
-                </div>
-            </a>
 
-            <!-- تطبيق سُطور (Sutoor) - الإصدار v1.2.0 -->
-            <a href="https://github.com/allhybym344-boop/sutoor/releases/download/v1.2.0/application-b575d031-ce79-484d-b9c2-2f9f53099a28.apk" class="link-card">
-                <div class="icon-title">
-                    <i class="fa-solid fa-file-lines"></i>
-                    <span>تطبيق سُطور (Sutoor) - APK</span>
+                <!-- السؤال 2 -->
+                <div class="preset-card" onclick="togglePreset(this)">
+                    <div class="preset-question">هل التطبيقات آمنة وخالية من الفيروسات؟</div>
+                    <div class="preset-answer">
+                        نعم 100%. جميع التطبيقات مبرمجة ومطورة شخصياً من قبل مصطفى المهندس وخاضعة لفحوصات الأمان الشاملة وخالية تماماً من أي برمجيات ضارة.
+                        <br>
+                        <a href="https://wa.me/9647734664193?text=مرحباً%20مصطفى،%20أريد%20التاكد%20من%20أمان%20تطبيقاتكم%20الذكية." target="_blank" class="wa-reply-btn" onclick="event.stopPropagation();">
+                            مراسلة مصطفى بهذا السؤال 💬
+                        </a>
+                    </div>
                 </div>
-                <div class="arrow-icon">
-                    <i class="fa-solid fa-arrow-left"></i>
-                </div>
-            </a>
 
-            <!-- تطبيق وزاري باث -->
-            <a href="#" target="_blank" class="link-card">
-                <div class="icon-title">
-                    <i class="fa-solid fa-graduation-cap"></i>
-                    <span>تطبيق وزاري باث (WizariPath)</span>
+                <!-- السؤال 3 -->
+                <div class="preset-card" onclick="togglePreset(this)">
+                    <div class="preset-question">كيف يمكنني طلب تطبيق خاص أو برمجة مشروع جديد؟</div>
+                    <div class="preset-answer">
+                        يسعدني جداً استقبال طلبات البرمجة الخاصة. يمكنك مراسلتي مباشرة عبر زر الواتساب مع تفاصيل مشروعك أو فكرتك لنناقش آلية التنفيذ والسعر المناسب.
+                        <br>
+                        <a href="https://wa.me/9647734664193?text=مرحباً%20مصطفى،%20أريد%20طلب%20تطبيق%20خاص%20أو%20مشروع%20برمجي%20جديد." target="_blank" class="wa-reply-btn" onclick="event.stopPropagation();">
+                            مراسلة مصطفى بهذا السؤال 💬
+                        </a>
+                    </div>
                 </div>
-                <div class="arrow-icon">
-                    <i class="fa-solid fa-arrow-left"></i>
-                </div>
-            </a>
 
-            <!-- قناتك على يوتيوب -->
-            <a href="https://www.youtube.com" target="_blank" class="link-card">
-                <div class="icon-title">
-                    <i class="fa-brands fa-youtube"></i>
-                    <span>القناة التعليمية على يوتيوب</span>
+                <!-- السؤال 4 -->
+                <div class="preset-card" onclick="togglePreset(this)">
+                    <div class="preset-question">واجهت مشكلة أثناء فتح التطبيق أو تسجيل الدخول، ماذا أفعل؟</div>
+                    <div class="preset-answer">
+                        تأكد من تحديث التطبيق لأحدث إصدار. إذا استمرت المشكلة، قم بمراسلتي عبر الواتساب مع ذكر تفاصيل المشكلة أو لقطة شاشة لتقديم الدعم الفني الفوري لك.
+                        <br>
+                        <a href="https://wa.me/9647734664193?text=مرحباً%20مصطفى،%20واجهت%20مشكلة%20تقنية%20في%20أحد%20التبيقات%20وأحتاج%20مساعدة." target="_blank" class="wa-reply-btn" onclick="event.stopPropagation();">
+                            مراسلة مصطفى بهذا السؤال 💬
+                        </a>
+                    </div>
                 </div>
-                <div class="arrow-icon">
-                    <i class="fa-solid fa-arrow-left"></i>
-                </div>
-            </a>
+            </div>
         </div>
-
-        <footer>
-            جميع الحقوق محفوظة لـ مصطفى المهندس &copy; 2026
-        </footer>
     </div>
+
+    <footer>
+        جميع الحقوق محفوظة &copy; 2026 مصطفى المهندس — Elite Systems
+    </footer>
+
+    <script>
+        // دالة تفاعلية لفتح وإغلاق الردود والأسئلة المهيئة
+        function togglePreset(card) {
+            const cards = document.querySelectorAll('.preset-card');
+            cards.forEach(c => {
+                if (c !== card) c.classList.remove('active');
+            });
+            card.classList.toggle('active');
+        }
+    </script>
 
 </body>
 </html>
